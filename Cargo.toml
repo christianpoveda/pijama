@@ -1,0 +1,19 @@
+[workspace]
+
+members = [
+    "pijama",
+    "pijama-ast",
+    "pijama-ast-lowering",
+    "pijama-hir",
+    "pijama-hir-lowering",
+    "pijama-llvm",
+    "pijama-core",
+    "pijama-parser",
+    "pijama-ty",
+    "pijama-tycheck",
+    "pijama-utils",
+]
+
+[profile.release]
+debug = true
+
