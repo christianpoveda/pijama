@@ -6,7 +6,7 @@ use pijama_utils::{index::IndexMap, new_index};
 
 new_index! {
     #[doc = "A function's ID.\n\nBy convention, the first ID corresponds to the `main` function of the program."]
-    #[derive(Debug)]
+    #[derive(Debug, Clone, Copy)]
     FuncId
 }
 
