@@ -1,0 +1,213 @@
+use crate::token::Token;
+
+use pijama_ast as ast;
+use pijama_utils::span::Span;
+
+grammar<'source>(source: &'source str);
+
+pub Program: ast::Program<'source> = {
+    <functions:(<FuncDef>)*> => {
+        ast::Program { functions }
+    }
+}
+
+FuncDef: ast::FuncDef<'source> = {
+    <start:Spanned<"fn">> <ident:Ident>
+    "(" <params:Sep<Param, ",">> ")" <return_ty:(":" <Ty>)?>
+    "do" <body:Expr> <end:Spanned<"end">> => {
+        ast::FuncDef {
+            ident,
+            params,
+            return_ty,
+            body,
+            span: start.1.join(end.1),
+        }
+    },
+}
+
+Expr: ast::Expr<'source> = {
+    <kind:Spanned<ExprKind>> => {
+        ast::Expr { kind: kind.0, span: kind.1 }
+    },
+}
+
+ExprKind: ast::ExprKind<'source> = {
+    <Atom> => ast::ExprKind::Atom(<>),
+    "let" <lhs:Param> "=" <rhs:Expr> "in" <body:Expr> "end" => {
+        ast::ExprKind::Let {
+            lhs: lhs.0,
+            lhs_ty: lhs.1,
+            rhs: Box::new(rhs),
+            body: Box::new(body),
+        }
+    },
+    <func:Ident> "(" <args:Sep<Atom, ",">> ")" => {
+        ast::ExprKind::Call { func, args }
+    },
+    <un_op:UnOp> <op:Atom> => ast::ExprKind::UnaryOp(un_op, op),
+    <op1: Atom> <bin_op:BinOp> <op2:Atom> => ast::ExprKind::BinaryOp(bin_op, op1, op2),
+    "if" <cond:Atom> "do" <do_expr:Expr> "else" <else_expr:Expr> "end" => {
+        ast::ExprKind::Cond {
+            cond,
+            do_expr: Box::new(do_expr),
+            else_expr: Box::new(else_expr),
+        }
+    },
+    "(" <ExprKind> ")",
+}
+
+UnOp: ast::UnOp = {
+    <kind:Spanned<UnOpKind>> => {
+        ast::UnOp { kind: kind.0, span: kind.1 }
+    },
+}
+
+UnOpKind: ast::UnOpKind = {
+    "!" => ast::UnOpKind::Not,
+    "-" => ast::UnOpKind::Neg,
+}
+
+BinOp: ast::BinOp = {
+    <kind:Spanned<BinOpKind>> => {
+        ast::BinOp { kind: kind.0, span: kind.1 }
+    },
+}
+
+BinOpKind: ast::BinOpKind = {
+    // BinOpKind1
+    "||" => ast::BinOpKind::Or,
+    // BinOpKind2
+    "&&" => ast::BinOpKind::And,
+    // BinOpKind3
+    "==" => ast::BinOpKind::Eq,
+    "!=" => ast::BinOpKind::Neq,
+    ">" => ast::BinOpKind::Gt,
+    "<" => ast::BinOpKind::Lt,
+    ">=" => ast::BinOpKind::Gte,
+    "<=" => ast::BinOpKind::Lte,
+    // BinOpKind4
+    "+" => ast::BinOpKind::Add,
+    "-" => ast::BinOpKind::Sub,
+    // BinOpKind5
+    "*" => ast::BinOpKind::Mul,
+    "/" => ast::BinOpKind::Div,
+    "%" => ast::BinOpKind::Rem,
+}
+
+
+Param: (ast::Ident<'source>, Option<ast::Ty<'source>>) = {
+    <ident:Ident> ":" <ty:Ty> => (ident, Some(ty)),
+    <Ident> => (<>, None),
+}
+
+Ty: ast::Ty<'source> = {
+    <kind:Spanned<TyKind>> => {
+        ast::Ty { kind: kind.0, span: kind.1 }
+    },
+}
+
+TyKind: ast::TyKind<'source> = {
+    <Ident> => ast::TyKind::Base(<>),
+    "(" <params_ty:Sep<Ty, ",">> ")" "->" <return_ty:Ty> => {
+        ast::TyKind::Func {
+            params_ty,
+            return_ty: Box::new(return_ty),
+        }
+    },
+}
+
+Atom: ast::Atom<'source> = {
+    <Literal> => ast::Atom::Literal(<>),
+    <Ident> => ast::Atom::Ident(<>),
+}
+
+Literal: ast::Literal = {
+    <integer:Spanned<"int">> => {
+        ast::Literal {
+            kind: ast::LiteralKind::Integer(integer.0),
+            span: integer.1
+        }
+    },
+    <boolean:Spanned<"true">> => {
+        ast::Literal {
+            kind: ast::LiteralKind::Bool(true),
+            span: boolean.1
+        }
+    },
+    <boolean:Spanned<"false">> => {
+        ast::Literal {
+            kind: ast::LiteralKind::Bool(false),
+            span: boolean.1
+        }
+    },
+    <unit:Spanned<"unit">> => {
+        ast::Literal {
+            kind: ast::LiteralKind::Unit,
+            span: unit.1
+        }
+    },
+}
+
+Ident: ast::Ident<'source> = {
+    <ident:Spanned<"ident">> => {
+        ast::Ident { symbol: ident.0, span: ident.1 }
+    },
+}
+
+Sep<T, S>: Vec<T> = {
+    <terms:(<T> S)*> <term:T?> => match term {
+        None => terms,
+        Some(term) => {
+            let mut terms = terms;
+            terms.push(term);
+            terms
+        }
+    }
+};
+
+Spanned<T>: (T, Span) = {
+    <start:@L> <term:T> <end:@R> => {
+        (term, Span::new(start, end))
+    }
+}
+
+extern {
+    type Location = usize;
+    type Error = crate::LexerError;
+
+    enum Token<'source> {
+        "int" => Token::Integer(<i64>),
+        "ident" => Token::Ident(<&'source str>),
+        "true" => Token::True,
+        "false" => Token::False,
+        "unit" => Token::Unit,
+        "let" => Token::Let,
+        "in" => Token::In,
+        "fn" => Token::Fn,
+        "if" => Token::If,
+        "do" => Token::Do,
+        "else" => Token::Else,
+        "end" => Token::End,
+        "+" => Token::Add,
+        "-" => Token::Sub,
+        "*" => Token::Mul,
+        "/" => Token::Div,
+        "%" => Token::Rem,
+        "&&" => Token::And,
+        "||" => Token::Or,
+        "!" => Token::Not,
+        "==" => Token::Eq,
+        "!=" => Token::Neq,
+        ">" => Token::Gt,
+        "<" => Token::Lt,
+        ">=" => Token::Gte,
+        "<=" => Token::Lte,
+        "=" => Token::Assign,
+        ":" => Token::Colon,
+        "," => Token::Comma,
+        "->" => Token::Arrow,
+        "(" => Token::OpenParen,
+        ")" => Token::CloseParen,
+    }
+}
+

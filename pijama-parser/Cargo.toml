@@ -6,4 +6,12 @@ edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[build-dependencies]
+lalrpop = "0.19.0"
+
 [dependencies]
+pijama-utils = { path = "../pijama-utils" }
+pijama-ast = { path = "../pijama-ast" }
+
+lalrpop-util = "0.19.0"
+logos = { version = "0.11.4" }
