@@ -40,8 +40,8 @@ pub enum ExprKind<'source> {
         /// The condition being tested.
         cond: Atom<'source>,
         /// The expression to be evaluated if the condition is true.
-        do_expr: Box<Expr<'source>>,
+        do_branch: Box<Expr<'source>>,
         /// The expression to be evaluated if the condition is false.
-        else_expr: Box<Expr<'source>>,
+        else_branch: Box<Expr<'source>>,
     },
 }

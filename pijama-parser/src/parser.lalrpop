@@ -46,11 +46,11 @@ ExprKind: ast::ExprKind<'source> = {
     },
     <un_op:UnOp> <op:Atom> => ast::ExprKind::UnaryOp(un_op, op),
     <op1: Atom> <bin_op:BinOp> <op2:Atom> => ast::ExprKind::BinaryOp(bin_op, op1, op2),
-    "if" <cond:Atom> "do" <do_expr:Expr> "else" <else_expr:Expr> "end" => {
+    "if" <cond:Atom> "do" <do_branch:Expr> "else" <else_branch:Expr> "end" => {
         ast::ExprKind::Cond {
             cond,
-            do_expr: Box::new(do_expr),
-            else_expr: Box::new(else_expr),
+            do_branch: Box::new(do_branch),
+            else_branch: Box::new(else_branch),
         }
     },
     "(" <ExprKind> ")",
