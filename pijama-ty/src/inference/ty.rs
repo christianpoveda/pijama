@@ -27,4 +27,3 @@ pub enum Ty {
         return_ty: Box<Self>,
     },
 }
-

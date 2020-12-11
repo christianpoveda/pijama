@@ -1,5 +1,4 @@
-use crate::literal::Literal;
-use crate::name::Name;
+use crate::{literal::Literal, name::Name};
 
 /// An atomic value.
 ///

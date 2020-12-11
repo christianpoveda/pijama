@@ -1,5 +1,4 @@
-use crate::expr::Expr;
-use crate::name::Local;
+use crate::{expr::Expr, name::Local};
 
 use pijama_ty::inference::Ty;
 use pijama_utils::{index::IndexMap, new_index};

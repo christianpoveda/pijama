@@ -1,6 +1,8 @@
-use crate::atom::Atom;
-use crate::name::{Local, Name};
-use crate::prim_op::PrimOp;
+use crate::{
+    atom::Atom,
+    name::{Local, Name},
+    prim_op::PrimOp,
+};
 
 /// An expression.
 ///

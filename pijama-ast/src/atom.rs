@@ -1,5 +1,4 @@
-use crate::ident::Ident;
-use crate::literal::Literal;
+use crate::{ident::Ident, literal::Literal};
 
 /// The AST representation of an atomic value.
 #[derive(Debug)]
