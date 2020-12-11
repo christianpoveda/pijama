@@ -1,8 +1,3 @@
-//! Types for inference.
-//!
-//! This is the type representation used for type-checking and type inference. The only difference
-//! between this representation and the concrete representation found in [crate::ty::Ty] is the
-//! [Ty::Hole] variant.
 use crate::base::BaseTy;
 
 use pijama_utils::new_index;
@@ -14,6 +9,10 @@ new_index! {
 }
 
 /// A type with holes.
+///
+/// This is the type representation used for type-checking and type inference. The only difference
+/// between this representation and the concrete representation found in [crate::ty::Ty] is the
+/// [Ty::Hole] variant.
 #[derive(Debug)]
 pub enum Ty {
     /// A base type.
@@ -28,3 +27,4 @@ pub enum Ty {
         return_ty: Box<Self>,
     },
 }
+
