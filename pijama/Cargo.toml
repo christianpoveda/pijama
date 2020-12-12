@@ -8,3 +8,5 @@ edition = "2018"
 
 [dependencies]
 pijama-parser = { path = "../pijama-parser" }
+pijama-ast-lowering = { path = "../pijama-ast-lowering" }
+pijama-ty = { path = "../pijama-ty" }

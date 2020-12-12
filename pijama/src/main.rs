@@ -1,3 +1,5 @@
+use pijama_ty::inference::TyContext;
+
 use std::{env::args, fs::read_to_string};
 
 fn main() {
@@ -12,5 +14,11 @@ fn main() {
     // Parse the source code.
     let ast = pijama_parser::parse(&source);
 
-    println!("{:?}", ast);
+    // Create a new typing context.
+    let tcx = TyContext::new();
+
+    // Lower the AST.
+    let hir = pijama_ast_lowering::lower_ast(&tcx, ast);
+
+    println!("{:?}", hir);
 }
