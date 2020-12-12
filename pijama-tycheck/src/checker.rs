@@ -3,6 +3,7 @@ use crate::{
     error::{TyError, TyResult},
     inference::InferTy,
     substitution::Substitution,
+    unifier::Unifier,
 };
 
 use pijama_hir::{FuncId, Local, Name, Program};
@@ -20,8 +21,6 @@ pub(crate) struct Checker<'tcx> {
     funcs_ty: IndexMap<FuncId, Ty>,
     /// The set of constraints that the program must satisfy to be well-typed.
     constraints: VecDeque<Constraint>,
-    /// The set of applied substitutions while doing unification.
-    substitutions: Vec<Substitution>,
 }
 
 impl<'tcx> Checker<'tcx> {
@@ -32,12 +31,12 @@ impl<'tcx> Checker<'tcx> {
             locals_ty: IndexMap::new(),
             funcs_ty: IndexMap::new(),
             constraints: VecDeque::new(),
-            substitutions: Vec::new(),
         }
     }
 
-    /// Type-check a program, consuming the checker in the process.
-    pub(crate) fn check_program(mut self, program: &Program) -> TyResult {
+    /// Type-check a program, consuming the checker in the process. If the type-checking was
+    /// successful, return an [Unifier] to instantiate all the type variables.
+    pub(crate) fn check_program(mut self, program: &Program) -> TyResult<Unifier> {
         // Reconstruct the type of each function in the program.
         let funcs_ty = program
             .functions
@@ -67,7 +66,10 @@ impl<'tcx> Checker<'tcx> {
         }
 
         // Unify all the constraints.
-        self.unify()
+        let mut unifier = Unifier::new();
+        self.unify(&mut unifier)?;
+
+        Ok(unifier)
     }
 
     /// Get the type of a name.
@@ -83,16 +85,6 @@ impl<'tcx> Checker<'tcx> {
         self.constraints.push_front(Constraint::new(lhs, rhs));
     }
 
-    /// Add a substitution to the list of used substitutions.
-    fn add_substitution(&mut self, mut new_subst: Substitution) {
-        for subst in &self.substitutions {
-            // Compose the new substitution with all the already used substitutions.
-            new_subst = subst.compose(new_subst);
-        }
-        // Push the substitution into the substitutions list.
-        self.substitutions.push(new_subst)
-    }
-
     /// Apply a substitution to all the remaining constraints.
     fn update_constraints(&mut self, subst: &Substitution) {
         for Constraint { lhs, rhs } in &mut self.constraints {
@@ -105,13 +97,13 @@ impl<'tcx> Checker<'tcx> {
     ///
     /// If this function runs successfully, the `substitutions` field can be used to substitute any
     /// type.
-    fn unify(&mut self) -> TyResult {
+    fn unify(&mut self, unifier: &mut Unifier) -> TyResult {
         // FIXME: check if it is better to pop from the other end.
         // Keep unifying while there are constraints to unify.
         if let Some(Constraint { lhs, rhs }) = self.constraints.pop_back() {
             // Skip the constraint if both sides of the constraint are equal.
             if lhs == rhs {
-                return self.unify();
+                return self.unify(unifier);
             }
 
             match (lhs, rhs) {
@@ -122,9 +114,9 @@ impl<'tcx> Checker<'tcx> {
                     // Replace lhs by rhs in all the constraints.
                     self.update_constraints(&subs);
                     // Keep unifying.
-                    self.unify()?;
+                    self.unify(unifier)?;
                     // Add this substitution to `substitutions`.
-                    self.add_substitution(subs);
+                    unifier.add_substitution(subs);
                 }
                 // If the right-hand side type is a free variable in the left-hand side, we can
                 // replace the right-hand side by the left-hand side.
@@ -133,9 +125,9 @@ impl<'tcx> Checker<'tcx> {
                     // Replace rhs by lhs in all the constraints.
                     self.update_constraints(&subs);
                     // Keep unifying.
-                    self.unify()?;
+                    self.unify(unifier)?;
                     // Add this substitution to `substitutions`.
-                    self.add_substitution(subs);
+                    unifier.add_substitution(subs);
                 }
                 // If both sides are functions. Unify each type inside them recursively.
                 (
@@ -165,7 +157,7 @@ impl<'tcx> Checker<'tcx> {
                     self.add_constraint(*return_ty1, *return_ty2);
 
                     // Keep unifying.
-                    self.unify()?;
+                    self.unify(unifier)?;
                 }
                 // Otherwise, the constraint cannot be satisified.
                 (expected, found) => return Err(TyError::TypeMismatch { expected, found }),

@@ -29,6 +29,7 @@ pub enum Ty {
 }
 
 impl Ty {
+    /// Check if the type has a "hole" type with the given ID.
     pub fn contains_hole(&self, hole_id: HoleId) -> bool {
         match self {
             Ty::Base(_) => false,

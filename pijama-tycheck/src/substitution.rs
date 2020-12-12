@@ -3,6 +3,7 @@ use pijama_ty::inference::Ty;
 /// A function from types to types.
 ///
 /// This represents a substitution function between types.
+#[derive(Debug)]
 pub(crate) struct Substitution {
     /// The type to be replaced.
     input: Ty,
