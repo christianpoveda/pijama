@@ -10,3 +10,4 @@ edition = "2018"
 pijama-parser = { path = "../pijama-parser" }
 pijama-ast-lowering = { path = "../pijama-ast-lowering" }
 pijama-ty = { path = "../pijama-ty" }
+pijama-tycheck = { path = "../pijama-tycheck" }
