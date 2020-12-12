@@ -5,6 +5,7 @@ use std::{fmt, marker::PhantomData};
 /// An associative array which uses an [Index] as key.
 ///
 /// This is just a thin wrapper over a [Vec].
+#[derive(Clone)]
 pub struct IndexMap<K: Index, V> {
     inner: Vec<V>,
     marker: PhantomData<K>,
