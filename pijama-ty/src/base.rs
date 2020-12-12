@@ -1,7 +1,7 @@
 //! Base types.
 
 /// A base type.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum BaseTy {
     /// The unit type.
     Unit,
