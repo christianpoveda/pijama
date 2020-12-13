@@ -6,9 +6,9 @@ use pijama_ty::inference::{HoleId, Ty};
 #[derive(Debug)]
 pub(crate) struct Substitution {
     /// The inference variable to be replaced.
-    input: HoleId,
+    pub(crate) input: HoleId,
     /// The replacement.
-    output: Ty,
+    pub(crate) output: Ty,
 }
 
 impl Substitution {
@@ -36,12 +36,5 @@ impl Substitution {
             // Otherwise, left the type as it is.
             Ty::Hole(_) | Ty::Base(_) => (),
         }
-    }
-
-    /// Compose this substition with another in the functional sense.
-    pub fn compose(&self, mut other: Self) -> Self {
-        // Apply the current substitution to the output of the other substitution.
-        self.apply_to(&mut other.output);
-        other
     }
 }

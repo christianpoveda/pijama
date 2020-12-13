@@ -3,7 +3,7 @@ use crate::{
     error::{TyError, TyResult},
     inference::InferTy,
     substitution::Substitution,
-    unifier::Unifier,
+    unifier::{Unifier, UnifierBuilder},
 };
 
 use pijama_hir::{FuncId, Local, Name, Program};
@@ -66,10 +66,11 @@ impl<'tcx> Checker<'tcx> {
         }
 
         // Unify all the constraints.
-        let mut unifier = Unifier::new();
-        self.unify(&mut unifier)?;
+        let mut builder = Unifier::builder();
+        self.unify(&mut builder)?;
 
-        Ok(unifier)
+        // Build an unifier.
+        builder.build()
     }
 
     /// Get the type of a name.
@@ -97,13 +98,13 @@ impl<'tcx> Checker<'tcx> {
     ///
     /// If this function runs successfully, the `substitutions` field can be used to substitute any
     /// type.
-    fn unify(&mut self, unifier: &mut Unifier) -> TyResult {
+    fn unify(&mut self, builder: &mut UnifierBuilder) -> TyResult {
         // FIXME: check if it is better to pop from the other end.
         // Keep unifying while there are constraints to unify.
         if let Some(Constraint { lhs, rhs }) = self.constraints.pop_back() {
             // Skip the constraint if both sides of the constraint are equal.
             if lhs == rhs {
-                return self.unify(unifier);
+                return self.unify(builder);
             }
 
             match (lhs, rhs) {
@@ -114,9 +115,9 @@ impl<'tcx> Checker<'tcx> {
                     // Replace lhs by rhs in all the constraints.
                     self.update_constraints(&subs);
                     // Keep unifying.
-                    self.unify(unifier)?;
-                    // Add this substitution to `substitutions`.
-                    unifier.add_substitution(subs);
+                    self.unify(builder)?;
+                    // Add this substitution to the builder.
+                    builder.add_substitution(subs);
                 }
                 // If the right-hand side type is a free variable in the left-hand side, we can
                 // replace the right-hand side by the left-hand side.
@@ -125,9 +126,9 @@ impl<'tcx> Checker<'tcx> {
                     // Replace rhs by lhs in all the constraints.
                     self.update_constraints(&subs);
                     // Keep unifying.
-                    self.unify(unifier)?;
-                    // Add this substitution to `substitutions`.
-                    unifier.add_substitution(subs);
+                    self.unify(builder)?;
+                    // Add this substitution to the builder.
+                    builder.add_substitution(subs);
                 }
                 // If both sides are functions. Unify each type inside them recursively.
                 (
@@ -157,7 +158,7 @@ impl<'tcx> Checker<'tcx> {
                     self.add_constraint(*return_ty1, *return_ty2);
 
                     // Keep unifying.
-                    self.unify(unifier)?;
+                    self.unify(builder)?;
                 }
                 // Otherwise, the constraint cannot be satisified.
                 (expected, found) => return Err(TyError::TypeMismatch { expected, found }),

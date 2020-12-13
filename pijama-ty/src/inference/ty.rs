@@ -4,7 +4,7 @@ use pijama_utils::new_index;
 
 new_index! {
     #[doc = "An unique ID used to represent inference variables."]
-    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
     HoleId
 }
 

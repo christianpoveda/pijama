@@ -4,7 +4,7 @@
 use crate::base::BaseTy;
 
 /// A concrete type.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Ty {
     /// A base type.
     Base(BaseTy),
