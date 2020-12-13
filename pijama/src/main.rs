@@ -19,10 +19,12 @@ fn main() {
 
     // Lower the AST.
     let hir = pijama_ast_lowering::lower_ast(&tcx, ast).unwrap();
-    println!("{:?}", hir);
 
     // Run the type-checking algorithm and get an unifier.
     let unifier = pijama_tycheck::check_program(&tcx, &hir).unwrap();
 
-    println!("{:?}", unifier);
+    // Lower the HIR.
+    let core = pijama_hir_lowering::lower_hir(unifier, hir).unwrap();
+
+    println!("{:?}", core);
 }
