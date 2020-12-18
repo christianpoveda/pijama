@@ -5,8 +5,15 @@ use pijama_utils::{index::IndexMap, new_index};
 
 new_index! {
     #[doc = "A function's ID.\n\nBy convention, the first ID corresponds to the `main` function of the program."]
-    #[derive(Debug, Clone, Copy)]
+    #[derive(Debug, Clone, Copy, Eq, PartialEq)]
     FuncId
+}
+
+impl FuncId {
+    /// The `FuncId` for the main function.
+    pub const fn main() -> Self {
+        FuncId(0)
+    }
 }
 
 /// A function.

@@ -26,5 +26,6 @@ fn main() {
     // Lower the HIR.
     let core = pijama_hir_lowering::lower_hir(unifier, hir).unwrap();
 
-    println!("{:?}", core);
+    // Emit LLVM-IR.
+    pijama_llvm::compile_and_run(core);
 }
