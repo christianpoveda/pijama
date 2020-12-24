@@ -14,20 +14,39 @@ use inkwell::{
     AddressSpace, OptimizationLevel,
 };
 
+/// A compiler for functions.
+///
+/// This is the main structure for lowering core expressions to LLVM-IR.
 pub(crate) struct FuncCompiler<'ctx, 'func> {
+    /// The global compiler.
     compiler: &'func Compiler<'ctx>,
+    /// The value of the function being compiled.
     func: FunctionValue<'ctx>,
+    /// The locals of the function as LLVM basic values.
     locals: IndexMap<Local, BasicValueEnum<'ctx>>,
 }
 
 impl<'ctx, 'func> FuncCompiler<'ctx, 'func> {
+    /// Create a new compiler for a function and get it ready to lower the body of the function.
     fn new(func_id: FuncId, compiler: &'func Compiler<'ctx>) -> Self {
-        let func = *compiler.funcs.get(func_id).unwrap();
+        // Get the value of the funciton to be compiled from the compiler.
+        let func = *compiler
+            .funcs
+            .get(func_id)
+            .expect("Every function should have a value by now.");
+
+        // Create a new map for the locals of the function. Include all the parameters of the
+        // function as values in it.
+        //
+        // This works because the parameters are always the first locals and they have the same
+        // order in the funciton's value as in the core representation.
         let locals = IndexMap::from_raw(func.get_params());
 
+        // Add an entry block for the function.
         let entry_bb = compiler.ctx.append_basic_block(func, "");
         compiler.builder.position_at_end(entry_bb);
 
+        // Return the compiler.
         Self {
             compiler,
             func,
@@ -35,67 +54,102 @@ impl<'ctx, 'func> FuncCompiler<'ctx, 'func> {
         }
     }
 
+    /// Compile the body of the function.
+    ///
+    /// This function assumes that the expression received as parameter is the body of the function
+    /// being lowered.
+    // FIXME: Maybe this should be called directly after initializing the compiler.
     fn compile_func(mut self, body: Expr) {
+        // Compile the body expression into a basic value.
         let return_value = self.compile(body);
+        // Build the return instruction with the return value.
         self.compiler.builder.build_return(Some(&return_value));
     }
 
+    /// Compile a term that implements [Compile] using this compiler.
+    ///
+    /// Using this method is prefered over [Compile::compile_with].
     pub(crate) fn compile<T: Compile<'ctx>>(&mut self, term: T) -> T::Output {
         term.compile_with(self)
     }
 
+    /// Bind a basic value to a local.
+    ///
+    /// This function panics if the basics values are bound in a different order as the one the
+    /// locals had inside the function's core representation.
     pub(crate) fn insert_local(&mut self, local: Local, value: BasicValueEnum<'ctx>) {
         let new_local = self.locals.insert(value);
-        assert_eq!(local, new_local);
+        assert_eq!(local, new_local, "Locals are in the wrong order.");
     }
 
+    /// Get the compiled value of a local.
     pub(crate) fn get_local(&self, local: Local) -> Option<BasicValueEnum<'ctx>> {
         self.locals.get(local).copied()
     }
 
+    /// Get the compiled pointer value of a function.
     pub(crate) fn get_func(&self, func_id: FuncId) -> Option<BasicValueEnum<'ctx>> {
         self.compiler
             .funcs
             .get(func_id)
+            // FIXME: when does this panics?.
             .map(|value| value.as_global_value().as_pointer_value().into())
     }
 
+    /// Add a new basic block at the end of the current function.
     pub(crate) fn add_bb(&self) -> BasicBlock<'ctx> {
         self.ctx().append_basic_block(self.func, "")
     }
 
+    /// Get a reference to LLVM's [Context].
     pub(crate) fn ctx(&self) -> &'ctx Context {
         self.compiler.ctx
     }
 
+    /// Get a reference to LLVM's [Builder].
     pub(crate) fn builder(&self) -> &Builder<'ctx> {
         &self.compiler.builder
     }
 }
 
+/// A compiler for programs.
+///
+/// This struct holds most of the LLVM structures required to compile a program from core to
+/// LLVM-IR.
 pub(crate) struct Compiler<'ctx> {
+    /// LLVM's context.
     ctx: &'ctx Context,
+    /// The module being compiled.
     module: Module<'ctx>,
+    /// LLVM's instruction builder.
     builder: Builder<'ctx>,
+    /// The values of each function in the program.
     funcs: IndexMap<FuncId, FunctionValue<'ctx>>,
 }
 
 impl<'ctx> Compiler<'ctx> {
+    /// Create a new empty compiler.
     pub(crate) fn new(ctx: &'ctx Context) -> Self {
         Self {
             ctx,
+            // We compile everything into a single module for now.
             module: ctx.create_module(""),
             builder: ctx.create_builder(),
             funcs: IndexMap::new(),
         }
     }
 
+    /// Lower a type into a Basic LLVM type.
+    ///
+    /// This can be done because function types are represented as pointer types instead.
     fn lower_ty(&self, ty: &Ty) -> BasicTypeEnum<'ctx> {
         match ty {
             Ty::Base(base_ty) => {
                 let basic_type = match base_ty {
+                    // FIXME: Try to use void and figure out how to eliminate all the `unit`
+                    // values.
                     BaseTy::Unit => self.ctx.i8_type(),
-                    BaseTy::Bool => self.ctx.i8_type(),
+                    BaseTy::Bool => self.ctx.bool_type(),
                     BaseTy::Integer => self.ctx.i64_type(),
                 };
                 basic_type.into()
@@ -104,20 +158,27 @@ impl<'ctx> Compiler<'ctx> {
                 params_ty,
                 return_ty,
             } => {
+                // Lower each type parameter.
                 let params_ty: Vec<_> = params_ty.iter().map(|ty| self.lower_ty(ty)).collect();
 
+                // Lower the return type.
                 let return_ty = self.lower_ty(return_ty.as_ref());
 
+                // Build a pointer type to a function.
                 return_ty
                     .fn_type(&params_ty, false)
+                    // Functions are always global.
                     .ptr_type(AddressSpace::Global)
                     .into()
             }
         }
     }
 
+    /// Compile and run a core program.
     pub(crate) fn compile_and_run(mut self, program: Program) {
+        // Create an LLVM value for each function in the program.
         for (func_id, func) in &program.functions {
+            // Lower the types of the parameters of the function.
             let params_ty: Vec<_> = func
                 .locals
                 .iter()
@@ -125,27 +186,40 @@ impl<'ctx> Compiler<'ctx> {
                 .map(|(_, ty)| self.lower_ty(ty))
                 .collect();
 
+            // Lower the return type of the function.
             let return_ty = self.lower_ty(&func.return_ty);
 
+            // Compute the function's type.
             let func_ty = return_ty.fn_type(&params_ty, false);
 
+            // Add a new value with the function's type.
             let func_value = self.module.add_function("", func_ty, None);
-            assert_eq!(func_id, self.funcs.insert(func_value));
+            // Be sure that we are inserting the functions in the same order as they were defined.
+            assert_eq!(
+                func_id,
+                self.funcs.insert(func_value),
+                "Functions are unorganized."
+            );
         }
 
+        // Compile each function.
         for (func_id, func) in program.functions {
             FuncCompiler::new(func_id, &self).compile_func(func.body);
         }
 
         self.module.print_to_stderr();
 
+        // Create a new execution engine for the current module.
         let execution_engine = self
             .module
             .create_jit_execution_engine(OptimizationLevel::Aggressive)
             .unwrap();
 
+        // Run the main function without arguments.
         let result =
             unsafe { execution_engine.run_function(*self.funcs.get(FuncId::main()).unwrap(), &[]) };
+        // Print the main function's result as an integer.
+        // FIXME: add a print foreign function.
         println!("{}", result.as_int(true));
     }
 }
