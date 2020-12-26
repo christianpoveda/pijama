@@ -32,10 +32,7 @@ pub enum Expr {
     Call {
         /// The name of the called function.
         ///
-        /// This can be a local because of expressions like:
-        /// ```
-        /// (if cond do f else g end)(arg)
-        /// ```
+        /// This can be a local because of expressions like: `(if cond do f else g end)(arg)`.
         func: Name,
         /// The arguments of the call.
         ///
