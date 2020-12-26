@@ -40,7 +40,7 @@ impl Compiler {
         let source = read_to_string(&config.path).unwrap();
 
         // Parse the source code.
-        let ast = pijama_parser::parse(&source);
+        let ast = pijama_parser::parse(&source).unwrap();
 
         // Create a new typing context.
         let tcx = TyContext::new();

@@ -173,7 +173,7 @@ Spanned<T>: (T, Span) = {
 
 extern {
     type Location = usize;
-    type Error = crate::LexerError;
+    type Error = crate::error::LexerError;
 
     enum Token<'source> {
         "int" => Token::Integer(<i64>),
