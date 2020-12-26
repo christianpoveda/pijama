@@ -1,5 +1,5 @@
 mod context;
-mod error;
+pub mod error;
 mod lowering;
 mod scope;
 

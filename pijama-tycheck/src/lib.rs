@@ -1,6 +1,6 @@
 mod checker;
 mod constraint;
-mod error;
+pub mod error;
 mod inference;
 mod substitution;
 mod unifier;
