@@ -215,15 +215,21 @@ impl<'ctx> Compiler<'ctx> {
         // Get the value for the main function.
         let main_fn = *self.funcs.get(FuncId::main()).unwrap();
 
-        // Build the `entry` function that calls main and returns void.
-        let entry_type = self.ctx.void_type().fn_type(&[], false);
+        // Build the `entry` function that calls main and returns an integer.
+        //
+        // FIXME: clean this when we have printing.
+        let entry_type = self.ctx.i64_type().fn_type(&[], false);
         let entry_fn = self
             .module
             .add_function("entry", entry_type, Some(Linkage::External));
         let entry_bb = self.ctx.append_basic_block(entry_fn, "");
         self.builder.position_at_end(entry_bb);
-        self.builder.build_call(main_fn, &[], "");
-        self.builder.build_return(None);
+        let result = self
+            .builder
+            .build_call(main_fn, &[], "")
+            .try_as_basic_value()
+            .unwrap_left();
+        self.builder.build_return(Some(&result));
 
         Target::initialize_all(&InitializationConfig::default());
         let target_triple = TargetMachine::get_default_triple();

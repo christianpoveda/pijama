@@ -61,21 +61,21 @@ impl Compiler {
 
         let exec_path = config.path.with_extension("out");
 
-        let c_src = "
-            extern void entry();
+        let c_src = r#"
+            #include <stdio.h>
+
+            extern int entry();
 
             int main() {
-                entry();
+                int result = entry();
+                printf("%d\n", result);
                 return 0;
             }
-        ";
+        "#;
 
         let mut clang = Command::new("clang")
             .args(&[
                 obj_path.as_os_str(),
-                OsStr::new(
-                    "/home/christian/Workspace/projects/pijama/target/release/libpijama_std.so",
-                ),
                 OsStr::new("-o"),
                 exec_path.as_os_str(),
                 OsStr::new("-x"),
