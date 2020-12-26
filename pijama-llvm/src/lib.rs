@@ -5,9 +5,11 @@ use compiler::Compiler;
 
 use pijama_core::Program;
 
-use inkwell::context::Context;
+use inkwell::{context::Context, support::LLVMString};
 
-pub fn compile_and_run(program: Program) {
+use std::path::Path;
+
+pub fn compile(program: Program, path: &Path) -> Result<(), LLVMString> {
     let context = Context::create();
-    Compiler::new(&context).compile_and_run(program)
+    Compiler::new(&context).compile(program, path)
 }

@@ -8,11 +8,15 @@ use inkwell::{
     basic_block::BasicBlock,
     builder::Builder,
     context::Context,
-    module::Module,
+    module::{Linkage, Module},
+    support::LLVMString,
+    targets::{CodeModel, FileType, InitializationConfig, RelocMode, Target, TargetMachine},
     types::{BasicType, BasicTypeEnum},
     values::{BasicValueEnum, FunctionValue},
     AddressSpace, OptimizationLevel,
 };
+
+use std::path::Path;
 
 /// A compiler for functions.
 ///
@@ -174,8 +178,8 @@ impl<'ctx> Compiler<'ctx> {
         }
     }
 
-    /// Compile and run a core program.
-    pub(crate) fn compile_and_run(mut self, program: Program) {
+    /// Compile a core program and write it as an object file.
+    pub(crate) fn compile(mut self, program: Program, path: &Path) -> Result<(), LLVMString> {
         // Create an LLVM value for each function in the program.
         for (func_id, func) in &program.functions {
             // Lower the types of the parameters of the function.
@@ -194,6 +198,7 @@ impl<'ctx> Compiler<'ctx> {
 
             // Add a new value with the function's type.
             let func_value = self.module.add_function("", func_ty, None);
+
             // Be sure that we are inserting the functions in the same order as they were defined.
             assert_eq!(
                 func_id,
@@ -207,19 +212,35 @@ impl<'ctx> Compiler<'ctx> {
             FuncCompiler::new(func_id, &self).compile_func(func.body);
         }
 
-        self.module.print_to_stderr();
+        // Get the value for the main function.
+        let main_fn = *self.funcs.get(FuncId::main()).unwrap();
 
-        // Create a new execution engine for the current module.
-        let execution_engine = self
+        // Build the `entry` function that calls main and returns void.
+        let entry_type = self.ctx.void_type().fn_type(&[], false);
+        let entry_fn = self
             .module
-            .create_jit_execution_engine(OptimizationLevel::Aggressive)
+            .add_function("entry", entry_type, Some(Linkage::External));
+        let entry_bb = self.ctx.append_basic_block(entry_fn, "");
+        self.builder.position_at_end(entry_bb);
+        self.builder.build_call(main_fn, &[], "");
+        self.builder.build_return(None);
+
+        Target::initialize_all(&InitializationConfig::default());
+        let target_triple = TargetMachine::get_default_triple();
+        let target = Target::from_triple(&target_triple).unwrap();
+
+        let target_machine = target
+            .create_target_machine(
+                &target_triple,
+                "generic",
+                "",
+                OptimizationLevel::Aggressive,
+                RelocMode::Default,
+                CodeModel::Default,
+            )
             .unwrap();
 
-        // Run the main function without arguments.
-        let result =
-            unsafe { execution_engine.run_function(*self.funcs.get(FuncId::main()).unwrap(), &[]) };
-        // Print the main function's result as an integer.
-        // FIXME: add a print foreign function.
-        println!("{}", result.as_int(true));
+        // Write the object file.
+        target_machine.write_to_file(&self.module, FileType::Object, path)
     }
 }

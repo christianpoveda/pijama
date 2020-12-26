@@ -1,6 +1,6 @@
-use pijama_ty::inference::TyContext;
+use pijama_interface::{Compiler, Config};
 
-use std::{env::args, fs::read_to_string};
+use std::env::args;
 
 fn main() {
     // Get the path of the file with the source code.
@@ -8,24 +8,9 @@ fn main() {
     args.next().unwrap();
     let path = args.next().unwrap();
 
-    // Read the source code to a string.
-    let source = read_to_string(path).unwrap();
+    // Create configuration.
+    let config = Config::new(path);
 
-    // Parse the source code.
-    let ast = pijama_parser::parse(&source);
-
-    // Create a new typing context.
-    let tcx = TyContext::new();
-
-    // Lower the AST.
-    let hir = pijama_ast_lowering::lower_ast(&tcx, ast).unwrap();
-
-    // Run the type-checking algorithm and get an unifier.
-    let unifier = pijama_tycheck::check_program(&tcx, &hir).unwrap();
-
-    // Lower the HIR.
-    let core = pijama_hir_lowering::lower_hir(unifier, hir).unwrap();
-
-    // Emit LLVM-IR.
-    pijama_llvm::compile_and_run(core);
+    // Run the compiler.
+    Compiler::new().run(config);
 }

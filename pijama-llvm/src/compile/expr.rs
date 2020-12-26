@@ -45,6 +45,10 @@ impl<'ctx> Compile<'ctx> for Expr {
                 // FIXME: Figure out how to abstract this. Maybe use a macro?.
                 // FIXME: Take an stance about overflows.
                 match prim_op {
+                    PrimOp::Add => compiler
+                        .builder()
+                        .build_int_add(ops[0].into_int_value(), ops[1].into_int_value(), "")
+                        .into(),
                     PrimOp::Sub => compiler
                         .builder()
                         .build_int_sub(ops[0].into_int_value(), ops[1].into_int_value(), "")

@@ -1,0 +1,15 @@
+[package]
+name = "pijama-interface"
+version = "0.1.0"
+authors = ["Christian Poveda <git@christianpoveda.xyz>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+pijama-parser = { path = "../pijama-parser" }
+pijama-ast-lowering = { path = "../pijama-ast-lowering" }
+pijama-hir-lowering = { path = "../pijama-hir-lowering" }
+pijama-llvm = { path = "../pijama-llvm" }
+pijama-ty = { path = "../pijama-ty" }
+pijama-tycheck = { path = "../pijama-tycheck" }
