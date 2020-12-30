@@ -11,5 +11,5 @@ pub use expr::Expr;
 pub use func::{Func, FuncId};
 pub use literal::Literal;
 pub use name::{Local, Name};
-pub use prim_op::PrimOp;
+pub use prim_op::{BinOp, UnOp};
 pub use program::Program;

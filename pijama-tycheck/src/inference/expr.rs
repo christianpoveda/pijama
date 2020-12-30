@@ -1,6 +1,6 @@
 use crate::{checker::Checker, error::TyResult, inference::InferTy};
 
-use pijama_hir::{Expr, PrimOp};
+use pijama_hir::{BinOp, Expr, UnOp};
 use pijama_ty::{base::BaseTy, inference::Ty};
 
 impl InferTy for Expr {
@@ -47,39 +47,51 @@ impl InferTy for Expr {
                 // The type of a call is the return type of the function.
                 Ok(return_ty)
             }
-            Expr::PrimitiveOp { prim_op, ops } => {
+            Expr::UnaryOp { un_op, op } => {
                 // Define the type the operands must have and the type that the operator returns.
-                let (expected_ty, infered_ty) = match prim_op {
-                    PrimOp::Add
-                    | PrimOp::Sub
-                    | PrimOp::Mul
-                    | PrimOp::Div
-                    | PrimOp::Rem
-                    | PrimOp::Neg => {
-                        // Arithmetic operators receive integers and return integers.
+                let (expected_ty, infered_ty) = match un_op {
+                    // Arithmetic operators receive integers and return integers.
+                    UnOp::Neg => (Ty::Base(BaseTy::Integer), Ty::Base(BaseTy::Integer)),
+                    // Logic operators receive booleans and return booleans.
+                    UnOp::Not => (Ty::Base(BaseTy::Bool), Ty::Base(BaseTy::Bool)),
+                };
+
+                // The operand must have the type that the operator expects.
+                let ty = op.infer_ty(checker)?;
+                checker.add_constraint(expected_ty, ty);
+
+                // The type of this expression is the type that the operator returns.
+                Ok(infered_ty)
+            }
+            Expr::BinaryOp {
+                bin_op,
+                left_op,
+                right_op,
+            } => {
+                // Define the type the operands must have and the type that the operator returns.
+                let (expected_ty, infered_ty) = match bin_op {
+                    // Arithmetic operators receive integers and return integers.
+                    BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div | BinOp::Rem => {
                         (Ty::Base(BaseTy::Integer), Ty::Base(BaseTy::Integer))
                     }
-                    PrimOp::And | PrimOp::Or | PrimOp::Not => {
-                        // Logic operators receive booleans and return booleans.
-                        (Ty::Base(BaseTy::Bool), Ty::Base(BaseTy::Bool))
-                    }
-                    PrimOp::Eq | PrimOp::Neq => {
-                        // Equality operators receive any type and return booleans.
-                        (checker.tcx.new_hole(), Ty::Base(BaseTy::Bool))
-                    }
-                    PrimOp::Lt | PrimOp::Gt | PrimOp::Lte | PrimOp::Gte => {
-                        // Comparison operators receive integers and return booleans.
+                    // Logic operators receive booleans and return booleans.
+                    BinOp::And | BinOp::Or => (Ty::Base(BaseTy::Bool), Ty::Base(BaseTy::Bool)),
+                    // Equality operators receive any type and return booleans.
+                    BinOp::Eq | BinOp::Neq => (checker.tcx.new_hole(), Ty::Base(BaseTy::Bool)),
+                    // Comparison operators receive integers and return booleans.
+                    BinOp::Lt | BinOp::Gt | BinOp::Lte | BinOp::Gte => {
                         (Ty::Base(BaseTy::Integer), Ty::Base(BaseTy::Bool))
                     }
                 };
 
-                for op in ops {
-                    // All the operands must have the type that the operator expects.
-                    let ty = op.infer_ty(checker)?;
-                    checker.add_constraint(expected_ty.clone(), ty);
-                }
+                // The operands must have the type that the operator expects.
+                let left_ty = left_op.infer_ty(checker)?;
+                let right_ty = right_op.infer_ty(checker)?;
 
-                // THe type of this expression is the type that the operator returns.
+                checker.add_constraint(expected_ty.clone(), left_ty);
+                checker.add_constraint(expected_ty, right_ty);
+
+                // The type of this expression is the type that the operator returns.
                 Ok(infered_ty)
             }
             Expr::Cond {

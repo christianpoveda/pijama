@@ -1,6 +1,6 @@
 use crate::{compile::Compile, compiler::FuncCompiler};
 
-use pijama_core::{Expr, PrimOp};
+use pijama_core::{BinOp, Expr};
 
 use inkwell::{values::BasicValueEnum, IntPredicate};
 
@@ -37,39 +37,41 @@ impl<'ctx> Compile<'ctx> for Expr {
                     .unwrap_left()
             }
 
-            Expr::PrimitiveOp { prim_op, ops } => {
-                // Compile every operand into a basic value and collect them. All of these should
-                // be integers.
-                let ops: Vec<_> = ops.into_iter().map(|arg| compiler.compile(arg)).collect();
+            Expr::BinaryOp {
+                bin_op,
+                left_op,
+                right_op,
+            } => {
+                // Compile the operands into a basic value and collect them. All of these should be
+                // integers.
+                let left_op = compiler.compile(left_op).into_int_value();
+                let right_op = compiler.compile(right_op).into_int_value();
 
                 // FIXME: Figure out how to abstract this. Maybe use a macro?.
                 // FIXME: Take an stance about overflows.
-                match prim_op {
-                    PrimOp::Add => compiler
+                match bin_op {
+                    BinOp::Add => compiler
                         .builder()
-                        .build_int_add(ops[0].into_int_value(), ops[1].into_int_value(), "")
+                        .build_int_add(left_op, right_op, "")
                         .into(),
-                    PrimOp::Sub => compiler
+                    BinOp::Sub => compiler
                         .builder()
-                        .build_int_sub(ops[0].into_int_value(), ops[1].into_int_value(), "")
+                        .build_int_sub(left_op, right_op, "")
                         .into(),
-                    PrimOp::Mul => compiler
+                    BinOp::Mul => compiler
                         .builder()
-                        .build_int_mul(ops[0].into_int_value(), ops[1].into_int_value(), "")
+                        .build_int_mul(left_op, right_op, "")
                         .into(),
-                    PrimOp::Gt => compiler
+                    BinOp::Gt => compiler
                         .builder()
-                        .build_int_compare(
-                            IntPredicate::SGT,
-                            ops[0].into_int_value(),
-                            ops[1].into_int_value(),
-                            "",
-                        )
+                        .build_int_compare(IntPredicate::SGT, left_op, right_op, "")
                         .into(),
                     // FIXME: Do the other operations.
                     _ => todo!(),
                 }
             }
+            // FIXME: Do the other operations.
+            Expr::UnaryOp { .. } => todo!(),
             Expr::Cond {
                 cond,
                 do_branch,

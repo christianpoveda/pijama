@@ -1,7 +1,7 @@
 use crate::{
     atom::Atom,
     name::{Local, Name},
-    prim_op::PrimOp,
+    prim_op::{BinOp, UnOp},
 };
 
 /// An expression.
@@ -40,15 +40,30 @@ pub enum Expr {
         /// arguments must be evaluated and bound to a local before.
         args: Vec<Atom>,
     },
-    /// A primitive operation.
-    PrimitiveOp {
-        /// The primitive operator.
-        prim_op: PrimOp,
-        /// The operands of the operation.
+    /// A primitive unary operation.
+    UnaryOp {
+        /// The primitive unary operator.
+        un_op: UnOp,
+        /// The operand of the operation.
         ///
         /// Operands must be atoms to avoid nesting expressions. Which means that any non-atomic
         /// operand must be evaluated and bound to a local before.
-        ops: Vec<Atom>,
+        op: Atom,
+    },
+    /// A primitive binary operation.
+    BinaryOp {
+        /// The primitive unary operator.
+        bin_op: BinOp,
+        /// The left-hand side operand of the operation.
+        ///
+        /// Operands must be atoms to avoid nesting expressions. Which means that any non-atomic
+        /// operand must be evaluated and bound to a local before.
+        left_op: Atom,
+        /// The right-hand side operand of the operation.
+        ///
+        /// Operands must be atoms to avoid nesting expressions. Which means that any non-atomic
+        /// operand must be evaluated and bound to a local before.
+        right_op: Atom,
     },
     /// A conditional expression.
     Cond {

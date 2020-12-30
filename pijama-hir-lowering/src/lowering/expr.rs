@@ -22,31 +22,42 @@ impl Lower for hir::Expr {
                     .map(|arg| lcx.lower(arg))
                     .collect::<LowerResult<Vec<_>>>()?,
             },
-            hir::Expr::PrimitiveOp { prim_op, ops } => {
-                let prim_op = match prim_op {
-                    hir::PrimOp::Not => core::PrimOp::Not,
-                    hir::PrimOp::Neg => core::PrimOp::Neg,
-                    hir::PrimOp::Add => core::PrimOp::Add,
-                    hir::PrimOp::Sub => core::PrimOp::Sub,
-                    hir::PrimOp::Mul => core::PrimOp::Mul,
-                    hir::PrimOp::Div => core::PrimOp::Div,
-                    hir::PrimOp::Rem => core::PrimOp::Rem,
-                    hir::PrimOp::And => core::PrimOp::And,
-                    hir::PrimOp::Or => core::PrimOp::Or,
-                    hir::PrimOp::Eq => core::PrimOp::Eq,
-                    hir::PrimOp::Neq => core::PrimOp::Neq,
-                    hir::PrimOp::Lt => core::PrimOp::Lt,
-                    hir::PrimOp::Gt => core::PrimOp::Gt,
-                    hir::PrimOp::Lte => core::PrimOp::Lte,
-                    hir::PrimOp::Gte => core::PrimOp::Gte,
+            hir::Expr::UnaryOp { un_op, op } => {
+                let un_op = match un_op {
+                    hir::UnOp::Not => core::UnOp::Not,
+                    hir::UnOp::Neg => core::UnOp::Neg,
                 };
 
-                core::Expr::PrimitiveOp {
-                    prim_op,
-                    ops: ops
-                        .into_iter()
-                        .map(|arg| lcx.lower(arg))
-                        .collect::<LowerResult<Vec<_>>>()?,
+                core::Expr::UnaryOp {
+                    un_op,
+                    op: lcx.lower(op)?,
+                }
+            }
+            hir::Expr::BinaryOp {
+                bin_op,
+                left_op,
+                right_op,
+            } => {
+                let bin_op = match bin_op {
+                    hir::BinOp::Add => core::BinOp::Add,
+                    hir::BinOp::Sub => core::BinOp::Sub,
+                    hir::BinOp::Mul => core::BinOp::Mul,
+                    hir::BinOp::Div => core::BinOp::Div,
+                    hir::BinOp::Rem => core::BinOp::Rem,
+                    hir::BinOp::And => core::BinOp::And,
+                    hir::BinOp::Or => core::BinOp::Or,
+                    hir::BinOp::Eq => core::BinOp::Eq,
+                    hir::BinOp::Neq => core::BinOp::Neq,
+                    hir::BinOp::Lt => core::BinOp::Lt,
+                    hir::BinOp::Gt => core::BinOp::Gt,
+                    hir::BinOp::Lte => core::BinOp::Lte,
+                    hir::BinOp::Gte => core::BinOp::Gte,
+                };
+
+                core::Expr::BinaryOp {
+                    bin_op,
+                    left_op: lcx.lower(left_op)?,
+                    right_op: lcx.lower(right_op)?,
                 }
             }
             hir::Expr::Cond {

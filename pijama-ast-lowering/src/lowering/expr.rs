@@ -53,40 +53,37 @@ impl<'source, 'tcx> Lower<'source, 'tcx> for ast::Expr<'source> {
                 hir::Expr::Call { func, args }
             }
             ast::ExprKind::UnaryOp(un_op, op) => {
-                // Get the right primitive operator.
-                let prim_op = match un_op.kind {
-                    ast::UnOpKind::Not => hir::PrimOp::Not,
-                    ast::UnOpKind::Neg => hir::PrimOp::Neg,
+                let un_op = match un_op.kind {
+                    ast::UnOpKind::Not => hir::UnOp::Not,
+                    ast::UnOpKind::Neg => hir::UnOp::Neg,
                 };
 
-                hir::Expr::PrimitiveOp {
-                    prim_op,
-                    // Lower the primitive operation with a single operand.
-                    ops: vec![lcx.lower(op)?],
+                hir::Expr::UnaryOp {
+                    un_op,
+                    op: lcx.lower(op)?,
                 }
             }
-            ast::ExprKind::BinaryOp(bin_op, op1, op2) => {
-                // Get the right primitive operator.
-                let prim_op = match bin_op.kind {
-                    ast::BinOpKind::Add => hir::PrimOp::Add,
-                    ast::BinOpKind::Sub => hir::PrimOp::Sub,
-                    ast::BinOpKind::Mul => hir::PrimOp::Mul,
-                    ast::BinOpKind::Div => hir::PrimOp::Div,
-                    ast::BinOpKind::Rem => hir::PrimOp::Rem,
-                    ast::BinOpKind::And => hir::PrimOp::And,
-                    ast::BinOpKind::Or => hir::PrimOp::Or,
-                    ast::BinOpKind::Eq => hir::PrimOp::Eq,
-                    ast::BinOpKind::Neq => hir::PrimOp::Neq,
-                    ast::BinOpKind::Lt => hir::PrimOp::Lt,
-                    ast::BinOpKind::Gt => hir::PrimOp::Gt,
-                    ast::BinOpKind::Lte => hir::PrimOp::Lte,
-                    ast::BinOpKind::Gte => hir::PrimOp::Gte,
+            ast::ExprKind::BinaryOp(bin_op, left_op, right_op) => {
+                let bin_op = match bin_op.kind {
+                    ast::BinOpKind::Add => hir::BinOp::Add,
+                    ast::BinOpKind::Sub => hir::BinOp::Sub,
+                    ast::BinOpKind::Mul => hir::BinOp::Mul,
+                    ast::BinOpKind::Div => hir::BinOp::Div,
+                    ast::BinOpKind::Rem => hir::BinOp::Rem,
+                    ast::BinOpKind::And => hir::BinOp::And,
+                    ast::BinOpKind::Or => hir::BinOp::Or,
+                    ast::BinOpKind::Eq => hir::BinOp::Eq,
+                    ast::BinOpKind::Neq => hir::BinOp::Neq,
+                    ast::BinOpKind::Lt => hir::BinOp::Lt,
+                    ast::BinOpKind::Gt => hir::BinOp::Gt,
+                    ast::BinOpKind::Lte => hir::BinOp::Lte,
+                    ast::BinOpKind::Gte => hir::BinOp::Gte,
                 };
 
-                hir::Expr::PrimitiveOp {
-                    prim_op,
-                    // Lower the primitive operation with two operands.
-                    ops: vec![lcx.lower(op1)?, lcx.lower(op2)?],
+                hir::Expr::BinaryOp {
+                    bin_op,
+                    left_op: lcx.lower(left_op)?,
+                    right_op: lcx.lower(right_op)?,
                 }
             }
             // Lowering a conditional is straightforward.

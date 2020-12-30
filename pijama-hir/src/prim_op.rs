@@ -1,10 +1,15 @@
-/// A primitive operator.
+/// A primitive unary operator.
 #[derive(Debug)]
-pub enum PrimOp {
+pub enum UnOp {
     /// The logical negation operator.
     Not,
     /// The arithmetic negation operator.
     Neg,
+}
+
+/// A primitive binary operator.
+#[derive(Debug)]
+pub enum BinOp {
     /// The arithmetic addition operator.
     Add,
     /// The arithmetic substraction operator.
