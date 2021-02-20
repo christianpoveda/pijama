@@ -33,7 +33,7 @@ Expr: ast::Expr<'source> = {
 
 ExprKind: ast::ExprKind<'source> = {
     <Atom> => ast::ExprKind::Atom(<>),
-    "let" <lhs:Param> "=" <rhs:Expr> "in" <body:Expr> "end" => {
+    "let" <lhs:Param> "=" <rhs:Expr> ";" <body:Expr> => {
         ast::ExprKind::Let {
             lhs: lhs.0,
             lhs_ty: lhs.1,
@@ -182,7 +182,7 @@ extern {
         "false" => Token::False,
         "unit" => Token::Unit,
         "let" => Token::Let,
-        "in" => Token::In,
+        ";" => Token::Semicolon,
         "fn" => Token::Fn,
         "if" => Token::If,
         "do" => Token::Do,

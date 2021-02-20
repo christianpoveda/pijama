@@ -23,9 +23,9 @@ pub enum Token<'source> {
     /// The `let` token.
     #[token("let")]
     Let,
-    /// The `in` token.
-    #[token("in")]
-    In,
+    /// The `;` token.
+    #[token(";")]
+    Semicolon,
     /// The `fn` token.
     #[token("fn")]
     Fn,
