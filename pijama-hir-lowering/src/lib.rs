@@ -12,6 +12,10 @@ use pijama_tycheck::{Table, Unifier};
 /// Lower the HIR of a program into the core representation.
 ///
 /// This method consumes the HIR and requires an [Unifier] to instantiate inference variables.
-pub fn lower_hir(unifier: Unifier, table: Table, program: hir::Program) -> LowerResult<core::Program> {
+pub fn lower_hir(
+    unifier: Unifier,
+    table: Table,
+    program: hir::Program,
+) -> LowerResult<core::Program> {
     LowerContext::new(unifier, table).lower(program)
 }

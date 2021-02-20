@@ -28,10 +28,37 @@ impl Lower for hir::Expr {
                     hir::UnOp::Neg => core::UnOp::Neg,
                 };
 
-                core::ExprKind::UnaryOp {
-                    un_op,
-                    op: lcx.lower(op)?,
+                let op = lcx.lower(*op)?;
+
+                let mut bind = None;
+
+                let op = match &op.kind {
+                    core::ExprKind::Atom(atom) => atom.clone(),
+                    _ => {
+                        let op_ty = lcx.get_expr_ty(op.id).unwrap();
+                        let local = lcx.store_local_ty(op_ty);
+                        bind = Some((local, op));
+                        core::Atom::Name(core::Name::Local(local))
+                    }
+                };
+
+                let mut kind = core::ExprKind::UnaryOp { un_op, op };
+
+                if let Some((lhs, rhs)) = bind {
+                    // FIXME: store the type of the new expr.
+                    let body = core::Expr {
+                        id: lcx.table.new_expr_id(),
+                        kind,
+                    };
+
+                    kind = core::ExprKind::Let {
+                        lhs,
+                        rhs: Box::new(rhs),
+                        body: Box::new(body),
+                    }
                 }
+
+                kind
             }
             hir::ExprKind::BinaryOp {
                 bin_op,
@@ -54,11 +81,69 @@ impl Lower for hir::Expr {
                     hir::BinOp::Gte => core::BinOp::Gte,
                 };
 
-                core::ExprKind::BinaryOp {
+                let left_op = lcx.lower(*left_op)?;
+
+                let mut left_bind = None;
+
+                let left_op = match &left_op.kind {
+                    core::ExprKind::Atom(atom) => atom.clone(),
+                    _ => {
+                        let op_ty = lcx.get_expr_ty(left_op.id).unwrap();
+                        let local = lcx.store_local_ty(op_ty);
+                        left_bind = Some((local, left_op));
+                        core::Atom::Name(core::Name::Local(local))
+                    }
+                };
+
+                let right_op = lcx.lower(*right_op)?;
+
+                let mut right_bind = None;
+
+                let right_op = match &right_op.kind {
+                    core::ExprKind::Atom(atom) => atom.clone(),
+                    _ => {
+                        let op_ty = lcx.get_expr_ty(right_op.id).unwrap();
+                        let local = lcx.store_local_ty(op_ty);
+                        right_bind = Some((local, right_op));
+                        core::Atom::Name(core::Name::Local(local))
+                    }
+                };
+
+                let mut kind = core::ExprKind::BinaryOp {
                     bin_op,
-                    left_op: lcx.lower(left_op)?,
-                    right_op: lcx.lower(right_op)?,
+                    left_op,
+                    right_op,
+                };
+
+                if let Some((lhs, rhs)) = left_bind {
+                    // FIXME: store the type of the new expr.
+                    let body = core::Expr {
+                        id: lcx.table.new_expr_id(),
+                        kind,
+                    };
+
+                    kind = core::ExprKind::Let {
+                        lhs,
+                        rhs: Box::new(rhs),
+                        body: Box::new(body),
+                    }
                 }
+
+                if let Some((lhs, rhs)) = right_bind {
+                    // FIXME: store the type of the new expr.
+                    let body = core::Expr {
+                        id: lcx.table.new_expr_id(),
+                        kind,
+                    };
+
+                    kind = core::ExprKind::Let {
+                        lhs,
+                        rhs: Box::new(rhs),
+                        body: Box::new(body),
+                    }
+                }
+
+                kind
             }
             hir::ExprKind::Cond {
                 cond,

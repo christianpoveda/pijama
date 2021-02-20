@@ -53,25 +53,16 @@ pub enum ExprKind {
         /// The primitive unary operator.
         un_op: UnOp,
         /// The operand of the operation.
-        ///
-        /// Operands must be atoms to avoid nesting expressions. Which means that any non-atomic
-        /// operand must be evaluated and bound to a local before.
-        op: Atom,
+        op: Box<Expr>,
     },
     /// A primitive binary operation.
     BinaryOp {
         /// The primitive unary operator.
         bin_op: BinOp,
         /// The left-hand side operand of the operation.
-        ///
-        /// Operands must be atoms to avoid nesting expressions. Which means that any non-atomic
-        /// operand must be evaluated and bound to a local before.
-        left_op: Atom,
+        left_op: Box<Expr>,
         /// The right-hand side operand of the operation.
-        ///
-        /// Operands must be atoms to avoid nesting expressions. Which means that any non-atomic
-        /// operand must be evaluated and bound to a local before.
-        right_op: Atom,
+        right_op: Box<Expr>,
     },
     /// A conditional expression.
     Cond {

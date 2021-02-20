@@ -60,9 +60,14 @@ impl<'source, 'tcx> Lower<'source, 'tcx> for ast::Expr<'source> {
                     ast::UnOpKind::Neg => hir::UnOp::Neg,
                 };
 
+                let op = lcx.lower(op)?;
+
                 hir::ExprKind::UnaryOp {
                     un_op,
-                    op: lcx.lower(op)?,
+                    op: Box::new(hir::Expr {
+                        id: lcx.new_id(),
+                        kind: hir::ExprKind::Atom(op),
+                    }),
                 }
             }
             ast::ExprKind::BinaryOp(bin_op, left_op, right_op) => {
@@ -82,10 +87,19 @@ impl<'source, 'tcx> Lower<'source, 'tcx> for ast::Expr<'source> {
                     ast::BinOpKind::Gte => hir::BinOp::Gte,
                 };
 
+                let left_op = lcx.lower(left_op)?;
+                let right_op = lcx.lower(right_op)?;
+
                 hir::ExprKind::BinaryOp {
                     bin_op,
-                    left_op: lcx.lower(left_op)?,
-                    right_op: lcx.lower(right_op)?,
+                    left_op: Box::new(hir::Expr {
+                        id: lcx.new_id(),
+                        kind: hir::ExprKind::Atom(left_op),
+                    }),
+                    right_op: Box::new(hir::Expr {
+                        id: lcx.new_id(),
+                        kind: hir::ExprKind::Atom(right_op),
+                    }),
                 }
             }
             // Lowering a conditional is straightforward.
