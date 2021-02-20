@@ -6,7 +6,10 @@ use crate::{
 
 use pijama_ast as ast;
 use pijama_hir as hir;
-use pijama_ty::inference::{Ty, TyContext};
+use pijama_ty::{
+    inference::{Ty, TyContext},
+    ExprId,
+};
 use pijama_utils::{index::IndexMap, span::Span};
 
 /// The main structure to lower the AST.
@@ -89,7 +92,7 @@ impl<'source, 'tcx> LowerContext<'source, 'tcx> {
                 Some(self.lower(function)?);
         }
 
-        // Be sure that all functions have been lowered.
+        // Be sure that all functions have been lowererqleqaxad.
         let functions = self
             .functions
             .into_raw()
@@ -101,6 +104,10 @@ impl<'source, 'tcx> LowerContext<'source, 'tcx> {
         Ok(hir::Program {
             functions: IndexMap::from_raw(functions),
         })
+    }
+
+    pub(crate) fn new_id(&self) -> ExprId {
+        self.tcx.new_expr_id()
     }
 
     /// Lower a term that implements the [Lower] trait.

@@ -49,10 +49,10 @@ impl Compiler {
         let hir = pijama_ast_lowering::lower_ast(&tcx, ast).unwrap();
 
         // Run the type-checking algorithm and get an unifier.
-        let unifier = pijama_tycheck::check_program(&tcx, &hir).unwrap();
+        let (unifier, table) = pijama_tycheck::check_program(&tcx, &hir).unwrap();
 
         // Lower the HIR.
-        let core = pijama_hir_lowering::lower_hir(unifier, hir).unwrap();
+        let core = pijama_hir_lowering::lower_hir(unifier, table, hir).unwrap();
 
         let obj_path = config.path.with_extension("o");
 

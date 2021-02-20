@@ -7,7 +7,7 @@ mod prim_op;
 mod program;
 
 pub use atom::Atom;
-pub use expr::Expr;
+pub use expr::{ExprKind, Expr};
 pub use func::{Func, FuncId};
 pub use literal::Literal;
 pub use name::{Local, Name};

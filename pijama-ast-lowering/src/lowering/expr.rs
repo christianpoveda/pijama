@@ -10,9 +10,11 @@ impl<'source, 'tcx> Lower<'source, 'tcx> for ast::Expr<'source> {
         self,
         lcx: &mut LowerContext<'source, 'tcx>,
     ) -> LowerResult<'source, Self::Output> {
-        let expr = match self.kind {
+        let id = lcx.new_id();
+
+        let kind = match self.kind {
             // Lowering an atom is straightforward.
-            ast::ExprKind::Atom(atom) => hir::Expr::Atom(lcx.lower(atom)?),
+            ast::ExprKind::Atom(atom) => hir::ExprKind::Atom(lcx.lower(atom)?),
             ast::ExprKind::Let {
                 lhs,
                 lhs_ty,
@@ -35,7 +37,7 @@ impl<'source, 'tcx> Lower<'source, 'tcx> for ast::Expr<'source> {
                 // Remove the left-hand side from the scope.
                 lcx.scope.pop_ident();
 
-                hir::Expr::Let {
+                hir::ExprKind::Let {
                     lhs: lhs_local,
                     rhs: Box::new(rhs),
                     body: Box::new(body),
@@ -50,7 +52,7 @@ impl<'source, 'tcx> Lower<'source, 'tcx> for ast::Expr<'source> {
                     .map(|arg| lcx.lower(arg))
                     .collect::<LowerResult<Vec<hir::Atom>>>()?;
 
-                hir::Expr::Call { func, args }
+                hir::ExprKind::Call { func, args }
             }
             ast::ExprKind::UnaryOp(un_op, op) => {
                 let un_op = match un_op.kind {
@@ -58,7 +60,7 @@ impl<'source, 'tcx> Lower<'source, 'tcx> for ast::Expr<'source> {
                     ast::UnOpKind::Neg => hir::UnOp::Neg,
                 };
 
-                hir::Expr::UnaryOp {
+                hir::ExprKind::UnaryOp {
                     un_op,
                     op: lcx.lower(op)?,
                 }
@@ -80,7 +82,7 @@ impl<'source, 'tcx> Lower<'source, 'tcx> for ast::Expr<'source> {
                     ast::BinOpKind::Gte => hir::BinOp::Gte,
                 };
 
-                hir::Expr::BinaryOp {
+                hir::ExprKind::BinaryOp {
                     bin_op,
                     left_op: lcx.lower(left_op)?,
                     right_op: lcx.lower(right_op)?,
@@ -91,13 +93,13 @@ impl<'source, 'tcx> Lower<'source, 'tcx> for ast::Expr<'source> {
                 cond,
                 do_branch,
                 else_branch,
-            } => hir::Expr::Cond {
+            } => hir::ExprKind::Cond {
                 cond: lcx.lower(cond)?,
                 do_branch: Box::new(lcx.lower(*do_branch)?),
                 else_branch: Box::new(lcx.lower(*else_branch)?),
             },
         };
 
-        Ok(expr)
+        Ok(hir::Expr { id, kind })
     }
 }

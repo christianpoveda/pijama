@@ -1,14 +1,14 @@
 use crate::{checker::Checker, error::TyResult, inference::InferTy};
 
-use pijama_hir::{BinOp, Expr, UnOp};
+use pijama_hir::{BinOp, Expr, ExprKind, UnOp};
 use pijama_ty::{base::BaseTy, inference::Ty};
 
 impl InferTy for Expr {
     fn infer_ty(&self, checker: &mut Checker) -> TyResult<Ty> {
-        match self {
+        let ty = match &self.kind {
             // Infering the type of an atom is straightforward.
-            Expr::Atom(atom) => atom.infer_ty(checker),
-            Expr::Let { lhs, rhs, body } => {
+            ExprKind::Atom(atom) => atom.infer_ty(checker)?,
+            ExprKind::Let { lhs, rhs, body } => {
                 // Infer the types of both sides.
                 let lhs_ty = lhs.infer_ty(checker)?;
                 let rhs_ty = rhs.infer_ty(checker)?;
@@ -17,9 +17,9 @@ impl InferTy for Expr {
                 checker.add_constraint(lhs_ty, rhs_ty);
 
                 // Then the type of this expression is the type of the body.
-                body.infer_ty(checker)
+                body.infer_ty(checker)?
             }
-            Expr::Call { func, args } => {
+            ExprKind::Call { func, args } => {
                 // FIXME: Figure out if doing an special case when `func` has a function type is
                 // better or not.
 
@@ -45,9 +45,9 @@ impl InferTy for Expr {
                 checker.add_constraint(lhs_ty, rhs_ty);
 
                 // The type of a call is the return type of the function.
-                Ok(return_ty)
+                return_ty
             }
-            Expr::UnaryOp { un_op, op } => {
+            ExprKind::UnaryOp { un_op, op } => {
                 // Define the type the operands must have and the type that the operator returns.
                 let (expected_ty, infered_ty) = match un_op {
                     // Arithmetic operators receive integers and return integers.
@@ -61,9 +61,9 @@ impl InferTy for Expr {
                 checker.add_constraint(expected_ty, ty);
 
                 // The type of this expression is the type that the operator returns.
-                Ok(infered_ty)
+                infered_ty
             }
-            Expr::BinaryOp {
+            ExprKind::BinaryOp {
                 bin_op,
                 left_op,
                 right_op,
@@ -92,9 +92,9 @@ impl InferTy for Expr {
                 checker.add_constraint(expected_ty, right_ty);
 
                 // The type of this expression is the type that the operator returns.
-                Ok(infered_ty)
+                infered_ty
             }
-            Expr::Cond {
+            ExprKind::Cond {
                 cond,
                 do_branch,
                 else_branch,
@@ -110,8 +110,13 @@ impl InferTy for Expr {
                 checker.add_constraint(do_ty.clone(), else_ty);
 
                 // The type of this expression is the type of the branches.
-                Ok(do_ty)
+                do_ty
             }
-        }
+        };
+
+        // Store the infered type for the expression.
+        checker.store_ty(self.id, ty.clone());
+
+        Ok(ty)
     }
 }

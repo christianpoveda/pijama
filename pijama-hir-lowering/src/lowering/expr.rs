@@ -8,21 +8,21 @@ impl Lower for hir::Expr {
 
     fn lower_with(self, lcx: &mut LowerContext) -> LowerResult<Self::Output> {
         // Lowering expressions is straightforward because they are the same.
-        let expr = match self {
-            hir::Expr::Atom(atom) => core::Expr::Atom(lcx.lower(atom)?),
-            hir::Expr::Let { lhs, rhs, body } => core::Expr::Let {
+        let expr = match self.kind {
+            hir::ExprKind::Atom(atom) => core::Expr::Atom(lcx.lower(atom)?),
+            hir::ExprKind::Let { lhs, rhs, body } => core::Expr::Let {
                 lhs: lcx.lower(lhs)?,
                 rhs: Box::new(lcx.lower(*rhs)?),
                 body: Box::new(lcx.lower(*body)?),
             },
-            hir::Expr::Call { func, args } => core::Expr::Call {
+            hir::ExprKind::Call { func, args } => core::Expr::Call {
                 func: lcx.lower(func)?,
                 args: args
                     .into_iter()
                     .map(|arg| lcx.lower(arg))
                     .collect::<LowerResult<Vec<_>>>()?,
             },
-            hir::Expr::UnaryOp { un_op, op } => {
+            hir::ExprKind::UnaryOp { un_op, op } => {
                 let un_op = match un_op {
                     hir::UnOp::Not => core::UnOp::Not,
                     hir::UnOp::Neg => core::UnOp::Neg,
@@ -33,7 +33,7 @@ impl Lower for hir::Expr {
                     op: lcx.lower(op)?,
                 }
             }
-            hir::Expr::BinaryOp {
+            hir::ExprKind::BinaryOp {
                 bin_op,
                 left_op,
                 right_op,
@@ -60,7 +60,7 @@ impl Lower for hir::Expr {
                     right_op: lcx.lower(right_op)?,
                 }
             }
-            hir::Expr::Cond {
+            hir::ExprKind::Cond {
                 cond,
                 do_branch,
                 else_branch,

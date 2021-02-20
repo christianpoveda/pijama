@@ -4,12 +4,20 @@ use crate::{
     prim_op::{BinOp, UnOp},
 };
 
+use pijama_ty::ExprId;
+
 /// An expression.
 ///
 /// This type tries to avoid nesting as much as possible by using atoms for all the control-flow
 /// related expressions.
 #[derive(Debug)]
-pub enum Expr {
+pub struct Expr {
+    pub id: ExprId,
+    pub kind: ExprKind,
+}
+
+#[derive(Debug)]
+pub enum ExprKind {
     /// An atomic expression.
     Atom(Atom),
     /// A local binding.
@@ -24,9 +32,9 @@ pub enum Expr {
         /// The expression whose value will be bound to the local.
         ///
         /// This expression is guaranteed to have the same type as the LHS.
-        rhs: Box<Self>,
+        rhs: Box<Expr>,
         /// The expression where this binding is valid.
-        body: Box<Self>,
+        body: Box<Expr>,
     },
     /// A function call.
     Call {
@@ -70,8 +78,8 @@ pub enum Expr {
         /// The condition being tested.
         cond: Atom,
         /// The expression to be evaluated if the condition is true.
-        do_branch: Box<Self>,
+        do_branch: Box<Expr>,
         /// The expression to be evaluated if the condition is false.
-        else_branch: Box<Self>,
+        else_branch: Box<Expr>,
     },
 }

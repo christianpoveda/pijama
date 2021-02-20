@@ -3,11 +3,15 @@ use crate::{
     error::{TyError, TyResult},
     inference::InferTy,
     substitution::Substitution,
+    table::Table,
     unifier::{Unifier, UnifierBuilder},
 };
 
 use pijama_hir::{FuncId, Local, Name, Program};
-use pijama_ty::inference::{Ty, TyContext};
+use pijama_ty::{
+    inference::{Ty, TyContext},
+    ExprId,
+};
 use pijama_utils::index::IndexMap;
 
 use std::collections::VecDeque;
@@ -21,6 +25,7 @@ pub(crate) struct Checker<'tcx> {
     funcs_ty: IndexMap<FuncId, Ty>,
     /// The set of constraints that the program must satisfy to be well-typed.
     constraints: VecDeque<Constraint>,
+    table: Table,
 }
 
 impl<'tcx> Checker<'tcx> {
@@ -31,12 +36,13 @@ impl<'tcx> Checker<'tcx> {
             locals_ty: IndexMap::new(),
             funcs_ty: IndexMap::new(),
             constraints: VecDeque::new(),
+            table: Table::new(tcx.expr_id_gen()),
         }
     }
 
     /// Type-check a program, consuming the checker in the process. If the type-checking was
     /// successful, return an [Unifier] to instantiate all the type variables.
-    pub(crate) fn check_program(mut self, program: &Program) -> TyResult<Unifier> {
+    pub(crate) fn check_program(mut self, program: &Program) -> TyResult<(Unifier, Table)> {
         // Reconstruct the type of each function in the program.
         let funcs_ty = program
             .functions
@@ -70,7 +76,7 @@ impl<'tcx> Checker<'tcx> {
         self.unify(&mut builder)?;
 
         // Build an unifier.
-        builder.build()
+        Ok((builder.build()?, self.table))
     }
 
     /// Get the type of a name.
@@ -165,5 +171,9 @@ impl<'tcx> Checker<'tcx> {
             }
         }
         Ok(())
+    }
+
+    pub(crate) fn store_ty(&mut self, expr_id: ExprId, ty: Ty) {
+        self.table.store_ty(expr_id, ty);
     }
 }
