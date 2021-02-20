@@ -1,6 +1,6 @@
 use crate::{compile::Compile, compiler::FuncCompiler};
 
-use pijama_core::{BinOp, Expr};
+use pijama_core::{BinOp, Expr, ExprKind};
 
 use inkwell::{values::BasicValueEnum, IntPredicate};
 
@@ -8,10 +8,10 @@ impl<'ctx> Compile<'ctx> for Expr {
     type Output = BasicValueEnum<'ctx>;
 
     fn compile_with(self, compiler: &mut FuncCompiler<'ctx, '_>) -> Self::Output {
-        match self {
+        match self.kind {
             // Just compile the atom inside the expression.
-            Expr::Atom(atom) => compiler.compile(atom),
-            Expr::Let { lhs, rhs, body } => {
+            ExprKind::Atom(atom) => compiler.compile(atom),
+            ExprKind::Let { lhs, rhs, body } => {
                 // First, compile the right-hand side. This should return a basic value.
                 let rhs = compiler.compile(*rhs);
                 // Bind that basic value to the left-hand side.
@@ -20,7 +20,7 @@ impl<'ctx> Compile<'ctx> for Expr {
                 // binding because locals are supposed to be unique inside each function.
                 compiler.compile(*body)
             }
-            Expr::Call { func, args } => {
+            ExprKind::Call { func, args } => {
                 // First, compile the called function and turn the basic value into a pointer. This
                 // always succeeds because functions are stored as pointers and any name referring
                 // directly or indirectly to a function will be bound to a pointer.
@@ -37,7 +37,7 @@ impl<'ctx> Compile<'ctx> for Expr {
                     .unwrap_left()
             }
 
-            Expr::BinaryOp {
+            ExprKind::BinaryOp {
                 bin_op,
                 left_op,
                 right_op,
@@ -71,8 +71,8 @@ impl<'ctx> Compile<'ctx> for Expr {
                 }
             }
             // FIXME: Do the other operations.
-            Expr::UnaryOp { .. } => todo!(),
-            Expr::Cond {
+            ExprKind::UnaryOp { .. } => todo!(),
+            ExprKind::Cond {
                 cond,
                 do_branch,
                 else_branch,

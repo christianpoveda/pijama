@@ -8,14 +8,14 @@ impl Lower for hir::Expr {
 
     fn lower_with(self, lcx: &mut LowerContext) -> LowerResult<Self::Output> {
         // Lowering expressions is straightforward because they are the same.
-        let expr = match self.kind {
-            hir::ExprKind::Atom(atom) => core::Expr::Atom(lcx.lower(atom)?),
-            hir::ExprKind::Let { lhs, rhs, body } => core::Expr::Let {
+        let kind = match self.kind {
+            hir::ExprKind::Atom(atom) => core::ExprKind::Atom(lcx.lower(atom)?),
+            hir::ExprKind::Let { lhs, rhs, body } => core::ExprKind::Let {
                 lhs: lcx.lower(lhs)?,
                 rhs: Box::new(lcx.lower(*rhs)?),
                 body: Box::new(lcx.lower(*body)?),
             },
-            hir::ExprKind::Call { func, args } => core::Expr::Call {
+            hir::ExprKind::Call { func, args } => core::ExprKind::Call {
                 func: lcx.lower(func)?,
                 args: args
                     .into_iter()
@@ -28,7 +28,7 @@ impl Lower for hir::Expr {
                     hir::UnOp::Neg => core::UnOp::Neg,
                 };
 
-                core::Expr::UnaryOp {
+                core::ExprKind::UnaryOp {
                     un_op,
                     op: lcx.lower(op)?,
                 }
@@ -54,7 +54,7 @@ impl Lower for hir::Expr {
                     hir::BinOp::Gte => core::BinOp::Gte,
                 };
 
-                core::Expr::BinaryOp {
+                core::ExprKind::BinaryOp {
                     bin_op,
                     left_op: lcx.lower(left_op)?,
                     right_op: lcx.lower(right_op)?,
@@ -64,13 +64,13 @@ impl Lower for hir::Expr {
                 cond,
                 do_branch,
                 else_branch,
-            } => core::Expr::Cond {
+            } => core::ExprKind::Cond {
                 cond: lcx.lower(cond)?,
                 do_branch: Box::new(lcx.lower(*do_branch)?),
                 else_branch: Box::new(lcx.lower(*else_branch)?),
             },
         };
 
-        Ok(expr)
+        Ok(core::Expr { id: self.id, kind })
     }
 }
