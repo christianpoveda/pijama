@@ -86,11 +86,11 @@ impl Compiler {
             .spawn()
             .expect("Failed to spawn child process");
 
-        {
-            let stdin = clang.stdin.as_mut().expect("Failed to open stdin");
-            stdin
-                .write_all(c_src.as_bytes())
-                .expect("Failed to write to stdin");
-        }
+        let stdin = clang.stdin.as_mut().expect("Failed to open stdin");
+        stdin
+            .write_all(c_src.as_bytes())
+            .expect("Failed to write to stdin");
+
+        clang.wait_with_output().expect("Failed to run clang");
     }
 }
