@@ -29,7 +29,7 @@ pub enum ExprKind<'source> {
         /// The name of the called function.
         func: Ident<'source>,
         /// The arguments of the call.
-        args: Vec<Atom<'source>>,
+        args: Vec<Expr<'source>>,
     },
     // A primitive unary operation.
     UnaryOp(UnOp, Box<Expr<'source>>),
@@ -38,7 +38,7 @@ pub enum ExprKind<'source> {
     /// A conditional expression.
     Cond {
         /// The condition being tested.
-        cond: Atom<'source>,
+        cond: Box<Expr<'source>>,
         /// The expression to be evaluated if the condition is true.
         do_branch: Box<Expr<'source>>,
         /// The expression to be evaluated if the condition is false.

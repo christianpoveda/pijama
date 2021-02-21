@@ -43,10 +43,7 @@ pub enum ExprKind {
         /// This can be a local because of expressions like: `(if cond do f else g end)(arg)`.
         func: Name,
         /// The arguments of the call.
-        ///
-        /// Arguments must be atoms to avoid nesting expressions. Which means that any non-atomic
-        /// arguments must be evaluated and bound to a local before.
-        args: Vec<Atom>,
+        args: Vec<Expr>,
     },
     /// A primitive unary operation.
     UnaryOp {
@@ -67,7 +64,7 @@ pub enum ExprKind {
     /// A conditional expression.
     Cond {
         /// The condition being tested.
-        cond: Atom,
+        cond: Box<Expr>,
         /// The expression to be evaluated if the condition is true.
         do_branch: Box<Expr>,
         /// The expression to be evaluated if the condition is false.

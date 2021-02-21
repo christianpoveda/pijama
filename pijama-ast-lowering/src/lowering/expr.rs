@@ -46,11 +46,11 @@ impl<'source, 'tcx> Lower<'source, 'tcx> for ast::Expr<'source> {
             ast::ExprKind::Call { func, args } => {
                 // Lower the identifier of the called function.
                 let func = lcx.lower(func)?;
-                // Lower each atom sequentially.
+                // Lower each expression sequentially.
                 let args = args
                     .into_iter()
                     .map(|arg| lcx.lower(arg))
-                    .collect::<LowerResult<Vec<hir::Atom>>>()?;
+                    .collect::<LowerResult<Vec<hir::Expr>>>()?;
 
                 hir::ExprKind::Call { func, args }
             }
@@ -94,7 +94,7 @@ impl<'source, 'tcx> Lower<'source, 'tcx> for ast::Expr<'source> {
                 do_branch,
                 else_branch,
             } => hir::ExprKind::Cond {
-                cond: lcx.lower(cond)?,
+                cond: Box::new(lcx.lower(*cond)?),
                 do_branch: Box::new(lcx.lower(*do_branch)?),
                 else_branch: Box::new(lcx.lower(*else_branch)?),
             },

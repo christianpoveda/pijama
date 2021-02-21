@@ -41,9 +41,9 @@ ExprKind: ast::ExprKind<'source> = {
             body: Box::new(body),
         }
     },
-    "if" <cond:Atom> "do" <do_branch:Expr> "else" <else_branch:Expr> "end" => {
+    "if" <cond:Expr> "do" <do_branch:Expr> "else" <else_branch:Expr> "end" => {
         ast::ExprKind::Cond {
-            cond,
+            cond: Box::new(cond),
             do_branch: Box::new(do_branch),
             else_branch: Box::new(else_branch),
         }
@@ -132,7 +132,7 @@ BaseExpr: ast::Expr<'source> = {
 
 BaseExprKind: ast::ExprKind<'source> = {
     <Atom> => ast::ExprKind::Atom(<>),
-    <func:Ident> "(" <args:Sep<Atom, ",">> ")" => {
+    <func:Ident> "(" <args:Sep<Expr, ",">> ")" => {
         ast::ExprKind::Call { func, args }
     },
     "(" <ExprKind> ")"
