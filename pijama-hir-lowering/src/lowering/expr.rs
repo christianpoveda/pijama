@@ -115,7 +115,7 @@ impl Lower for hir::Expr {
                     right_op,
                 };
 
-                if let Some((lhs, rhs)) = left_bind {
+                if let Some((lhs, rhs)) = right_bind {
                     // FIXME: store the type of the new expr.
                     let body = core::Expr {
                         id: lcx.table.new_expr_id(),
@@ -129,7 +129,7 @@ impl Lower for hir::Expr {
                     }
                 }
 
-                if let Some((lhs, rhs)) = right_bind {
+                if let Some((lhs, rhs)) = left_bind {
                     // FIXME: store the type of the new expr.
                     let body = core::Expr {
                         id: lcx.table.new_expr_id(),
