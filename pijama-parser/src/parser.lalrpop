@@ -26,13 +26,13 @@ FuncDef: ast::FuncDef<'source> = {
 }
 
 Expr: ast::Expr<'source> = {
-    <kind:Spanned<ExprKind>> => {
-        ast::Expr { kind: kind.0, span: kind.1 }
+    BinaryOp1,
+    <spanned:Spanned<ExprKind>> => {
+        ast::Expr { kind: spanned.0, span: spanned.1 }
     },
 }
 
 ExprKind: ast::ExprKind<'source> = {
-    <Atom> => ast::ExprKind::Atom(<>),
     "let" <lhs:Param> "=" <rhs:Expr> ";" <body:Expr> => {
         ast::ExprKind::Let {
             lhs: lhs.0,
@@ -41,11 +41,6 @@ ExprKind: ast::ExprKind<'source> = {
             body: Box::new(body),
         }
     },
-    <func:Ident> "(" <args:Sep<Atom, ",">> ")" => {
-        ast::ExprKind::Call { func, args }
-    },
-    <un_op:UnOp> <op:Atom> => ast::ExprKind::UnaryOp(un_op, op),
-    <op1: Atom> <bin_op:BinOp> <op2:Atom> => ast::ExprKind::BinaryOp(bin_op, op1, op2),
     "if" <cond:Atom> "do" <do_branch:Expr> "else" <else_branch:Expr> "end" => {
         ast::ExprKind::Cond {
             cond,
@@ -53,7 +48,69 @@ ExprKind: ast::ExprKind<'source> = {
             else_branch: Box::new(else_branch),
         }
     },
-    "(" <ExprKind> ")",
+}
+
+BinaryOp1 = Tier<BinOpKind1, BinaryOp2>;
+BinaryOp2 = Tier<BinOpKind2, BinaryOp3>;
+BinaryOp3 = Tier<BinOpKind3, BinaryOp4>;
+BinaryOp4 = Tier<BinOpKind4, BinaryOp5>;
+BinaryOp5 = Tier<BinOpKind5, UnaryOp>;
+
+Tier<OpKind, NextTier>: ast::Expr<'source> = {
+    <op1:Tier<OpKind, NextTier>> <bin_op:Spanned<OpKind>> <op2:NextTier> => {
+        let bin_op = ast::BinOp { kind: bin_op.0, span: bin_op.1 };
+        let span = Span::new(op1.span.start, op2.span.end);
+
+        ast::Expr {
+            kind: ast::ExprKind::BinaryOp(
+                bin_op,
+                Box::new(op1),
+                Box::new(op2)
+            ),
+            span,
+        }
+    },
+    NextTier
+}
+
+BinOpKind1: ast::BinOpKind = {
+    "||" => ast::BinOpKind::Or,
+}
+
+BinOpKind2: ast::BinOpKind = {
+    "&&" => ast::BinOpKind::And,
+}
+
+BinOpKind3: ast::BinOpKind = {
+    "==" => ast::BinOpKind::Eq,
+    "!=" => ast::BinOpKind::Neq,
+    ">" => ast::BinOpKind::Gt,
+    "<" => ast::BinOpKind::Lt,
+    ">=" => ast::BinOpKind::Gte,
+    "<=" => ast::BinOpKind::Lte,
+}
+
+BinOpKind4: ast::BinOpKind = {
+    "+" => ast::BinOpKind::Add,
+    "-" => ast::BinOpKind::Sub,
+}
+
+BinOpKind5: ast::BinOpKind = {
+    "*" => ast::BinOpKind::Mul,
+    "/" => ast::BinOpKind::Div,
+    "%" => ast::BinOpKind::Rem,
+}
+
+
+UnaryOp: ast::Expr<'source> = {
+    <un_op:UnOp> <op:BaseExpr> => {
+        let span = Span::new(un_op.span.start, op.span.end);
+        ast::Expr {
+            kind: ast::ExprKind::UnaryOp(un_op, Box::new(op)),
+            span,
+        }
+    },
+    <BaseExpr>,
 }
 
 UnOp: ast::UnOp = {
@@ -67,33 +124,19 @@ UnOpKind: ast::UnOpKind = {
     "-" => ast::UnOpKind::Neg,
 }
 
-BinOp: ast::BinOp = {
-    <kind:Spanned<BinOpKind>> => {
-        ast::BinOp { kind: kind.0, span: kind.1 }
+BaseExpr: ast::Expr<'source> = {
+    <spanned:Spanned<BaseExprKind>> => {
+        ast::Expr { kind: spanned.0, span: spanned.1 }
     },
 }
 
-BinOpKind: ast::BinOpKind = {
-    // BinOpKind1
-    "||" => ast::BinOpKind::Or,
-    // BinOpKind2
-    "&&" => ast::BinOpKind::And,
-    // BinOpKind3
-    "==" => ast::BinOpKind::Eq,
-    "!=" => ast::BinOpKind::Neq,
-    ">" => ast::BinOpKind::Gt,
-    "<" => ast::BinOpKind::Lt,
-    ">=" => ast::BinOpKind::Gte,
-    "<=" => ast::BinOpKind::Lte,
-    // BinOpKind4
-    "+" => ast::BinOpKind::Add,
-    "-" => ast::BinOpKind::Sub,
-    // BinOpKind5
-    "*" => ast::BinOpKind::Mul,
-    "/" => ast::BinOpKind::Div,
-    "%" => ast::BinOpKind::Rem,
+BaseExprKind: ast::ExprKind<'source> = {
+    <Atom> => ast::ExprKind::Atom(<>),
+    <func:Ident> "(" <args:Sep<Atom, ",">> ")" => {
+        ast::ExprKind::Call { func, args }
+    },
+    "(" <ExprKind> ")"
 }
-
 
 Param: (ast::Ident<'source>, Option<ast::Ty<'source>>) = {
     <ident:Ident> ":" <ty:Ty> => (ident, Some(ty)),

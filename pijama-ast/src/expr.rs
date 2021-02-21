@@ -32,9 +32,9 @@ pub enum ExprKind<'source> {
         args: Vec<Atom<'source>>,
     },
     // A primitive unary operation.
-    UnaryOp(UnOp, Atom<'source>),
+    UnaryOp(UnOp, Box<Expr<'source>>),
     // A primitive binary operation.
-    BinaryOp(BinOp, Atom<'source>, Atom<'source>),
+    BinaryOp(BinOp, Box<Expr<'source>>, Box<Expr<'source>>),
     /// A conditional expression.
     Cond {
         /// The condition being tested.
