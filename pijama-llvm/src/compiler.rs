@@ -241,7 +241,7 @@ impl<'ctx> Compiler<'ctx> {
                 "generic",
                 "",
                 OptimizationLevel::Aggressive,
-                RelocMode::Default,
+                RelocMode::PIC,
                 CodeModel::Default,
             )
             .unwrap();
