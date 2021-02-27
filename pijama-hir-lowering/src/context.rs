@@ -28,9 +28,8 @@ impl LowerContext {
         term.lower_with(self)
     }
 
-    pub(crate) fn get_expr_ty(&self, id: ExprId) -> Option<Ty> {
-        let ty = self.table.get_ty(id)?.clone();
-        Some(self.unifier.instantiate(ty))
+    pub(crate) fn get_expr_ty(&self, id: ExprId) -> Option<&Ty> {
+        self.table.get_ty(id)
     }
 
     pub(crate) fn store_local_ty(&mut self, ty: Ty) -> core::Local {

@@ -30,4 +30,8 @@ impl<I: Index> IndexGen<I> {
         self.count.set(count + 1);
         I::new(count)
     }
+
+    pub fn count(&self) -> usize {
+        self.count.get()
+    }
 }

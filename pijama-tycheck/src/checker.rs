@@ -3,7 +3,7 @@ use crate::{
     error::{TyError, TyResult},
     inference::InferTy,
     substitution::Substitution,
-    table::Table,
+    table::{Table, TableBuilder},
     unifier::{Unifier, UnifierBuilder},
 };
 
@@ -25,7 +25,7 @@ pub(crate) struct Checker<'tcx> {
     funcs_ty: IndexMap<FuncId, Ty>,
     /// The set of constraints that the program must satisfy to be well-typed.
     constraints: VecDeque<Constraint>,
-    table: Table,
+    table: TableBuilder,
 }
 
 impl<'tcx> Checker<'tcx> {
@@ -36,7 +36,7 @@ impl<'tcx> Checker<'tcx> {
             locals_ty: IndexMap::new(),
             funcs_ty: IndexMap::new(),
             constraints: VecDeque::new(),
-            table: Table::new(tcx.expr_id_gen()),
+            table: Table::builder(tcx.count_expr_ids()),
         }
     }
 
@@ -76,7 +76,11 @@ impl<'tcx> Checker<'tcx> {
         self.unify(&mut builder)?;
 
         // Build an unifier.
-        Ok((builder.build()?, self.table))
+        let unifier = builder.build()?;
+
+        let table = self.table.build(&unifier).unwrap();
+
+        Ok((unifier, table))
     }
 
     /// Get the type of a name.

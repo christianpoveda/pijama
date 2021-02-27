@@ -37,4 +37,8 @@ impl TyContext {
     pub fn expr_id_gen(&self) -> Rc<IndexGen<ExprId>> {
         Rc::clone(&self.expr_id_gen)
     }
+
+    pub fn count_expr_ids(&self) -> usize {
+        self.expr_id_gen.count()
+    }
 }

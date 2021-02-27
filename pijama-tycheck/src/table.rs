@@ -1,33 +1,55 @@
-use pijama_ty::{inference::Ty, ExprId};
-use pijama_utils::index::IndexGen;
+use crate::Unifier;
 
-use std::{collections::HashMap, rc::Rc};
+use pijama_ty::{inference, ty, ExprId};
+use pijama_utils::index::IndexMap;
 
-// FIXME: Split into a builder and the actual table. The builder is backed by
-// `IndexMap<ExprId, Option<inference::Ty>>`, the actual table is backed by
-// `IndexMap<ExprId, ty::Ty>`.
 pub struct Table {
-    generator: Rc<IndexGen<ExprId>>,
-    types: HashMap<ExprId, Ty>,
+    types: IndexMap<ExprId, ty::Ty>,
 }
 
 impl Table {
-    pub(crate) fn new(generator: Rc<IndexGen<ExprId>>) -> Self {
-        Self {
-            generator,
-            types: HashMap::new(),
+    pub fn store_ty(&mut self, ty: ty::Ty) -> ExprId {
+        self.types.insert(ty)
+    }
+
+    pub fn get_ty(&self, expr_id: ExprId) -> Option<&ty::Ty> {
+        self.types.get(expr_id)
+    }
+
+    pub fn builder(len_table: usize) -> TableBuilder {
+        TableBuilder {
+            types: IndexMap::from_raw((0..len_table).map(|_| None).collect()),
         }
     }
+}
 
-    pub fn store_ty(&mut self, expr_id: ExprId, ty: Ty) {
-        assert!(self.types.insert(expr_id, ty).is_none());
+pub struct TableBuilder {
+    types: IndexMap<ExprId, Option<inference::Ty>>,
+}
+
+impl TableBuilder {
+    pub fn store_ty(&mut self, expr_id: ExprId, ty: inference::Ty) {
+        assert!(self.types.get_mut(expr_id).unwrap().replace(ty).is_none())
     }
 
-    pub fn new_expr_id(&self) -> ExprId {
-        self.generator.generate()
+    pub fn get_ty(&self, expr_id: ExprId) -> Option<&inference::Ty> {
+        self.types.get(expr_id).and_then(|ty| ty.as_ref())
     }
 
-    pub fn get_ty(&self, expr_id: ExprId) -> Option<&Ty> {
-        self.types.get(&expr_id)
+    pub fn build(self, unifier: &Unifier) -> Result<Table, ExprId> {
+        let types = IndexMap::from_raw(
+            self.types
+                .into_iter()
+                .map(|(expr_id, ty)| {
+                    if let Some(ty) = ty {
+                        Ok(unifier.instantiate(ty))
+                    } else {
+                        Err(expr_id)
+                    }
+                })
+                .collect::<Result<Vec<ty::Ty>, ExprId>>()?,
+        );
+
+        Ok(Table { types })
     }
 }

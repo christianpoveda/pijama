@@ -28,7 +28,7 @@ impl Lower for hir::Expr {
                             let arg = match &arg.kind {
                                 core::ExprKind::Atom(atom) => atom.clone(),
                                 _ => {
-                                    let arg_ty = lcx.get_expr_ty(arg.id).unwrap();
+                                    let arg_ty = lcx.get_expr_ty(arg.id).unwrap().clone();
                                     let local = lcx.store_local_ty(arg_ty);
                                     binds.push((local, arg));
                                     core::Atom::Name(core::Name::Local(local))
@@ -41,11 +41,11 @@ impl Lower for hir::Expr {
                 };
 
                 while let Some((lhs, rhs)) = binds.pop() {
-                    // FIXME: store the type of the new expr.
-                    let body = core::Expr {
-                        id: lcx.table.new_expr_id(),
-                        kind,
-                    };
+                    let rhs_ty = lcx.table.get_ty(rhs.id).unwrap().clone();
+
+                    let id = lcx.table.store_ty(rhs_ty);
+
+                    let body = core::Expr { id, kind };
 
                     kind = core::ExprKind::Let {
                         lhs,
@@ -69,7 +69,7 @@ impl Lower for hir::Expr {
                 let op = match &op.kind {
                     core::ExprKind::Atom(atom) => atom.clone(),
                     _ => {
-                        let op_ty = lcx.get_expr_ty(op.id).unwrap();
+                        let op_ty = lcx.get_expr_ty(op.id).unwrap().clone();
                         let local = lcx.store_local_ty(op_ty);
                         bind = Some((local, op));
                         core::Atom::Name(core::Name::Local(local))
@@ -79,11 +79,11 @@ impl Lower for hir::Expr {
                 let mut kind = core::ExprKind::UnaryOp { un_op, op };
 
                 if let Some((lhs, rhs)) = bind {
-                    // FIXME: store the type of the new expr.
-                    let body = core::Expr {
-                        id: lcx.table.new_expr_id(),
-                        kind,
-                    };
+                    let rhs_ty = lcx.table.get_ty(rhs.id).unwrap().clone();
+
+                    let id = lcx.table.store_ty(rhs_ty);
+
+                    let body = core::Expr { id, kind };
 
                     kind = core::ExprKind::Let {
                         lhs,
@@ -122,7 +122,7 @@ impl Lower for hir::Expr {
                 let left_op = match &left_op.kind {
                     core::ExprKind::Atom(atom) => atom.clone(),
                     _ => {
-                        let op_ty = lcx.get_expr_ty(left_op.id).unwrap();
+                        let op_ty = lcx.get_expr_ty(left_op.id).unwrap().clone();
                         let local = lcx.store_local_ty(op_ty);
                         left_bind = Some((local, left_op));
                         core::Atom::Name(core::Name::Local(local))
@@ -136,7 +136,7 @@ impl Lower for hir::Expr {
                 let right_op = match &right_op.kind {
                     core::ExprKind::Atom(atom) => atom.clone(),
                     _ => {
-                        let op_ty = lcx.get_expr_ty(right_op.id).unwrap();
+                        let op_ty = lcx.get_expr_ty(right_op.id).unwrap().clone();
                         let local = lcx.store_local_ty(op_ty);
                         right_bind = Some((local, right_op));
                         core::Atom::Name(core::Name::Local(local))
@@ -150,11 +150,11 @@ impl Lower for hir::Expr {
                 };
 
                 if let Some((lhs, rhs)) = right_bind {
-                    // FIXME: store the type of the new expr.
-                    let body = core::Expr {
-                        id: lcx.table.new_expr_id(),
-                        kind,
-                    };
+                    let rhs_ty = lcx.table.get_ty(rhs.id).unwrap().clone();
+
+                    let id = lcx.table.store_ty(rhs_ty);
+
+                    let body = core::Expr { id, kind };
 
                     kind = core::ExprKind::Let {
                         lhs,
@@ -164,11 +164,11 @@ impl Lower for hir::Expr {
                 }
 
                 if let Some((lhs, rhs)) = left_bind {
-                    // FIXME: store the type of the new expr.
-                    let body = core::Expr {
-                        id: lcx.table.new_expr_id(),
-                        kind,
-                    };
+                    let rhs_ty = lcx.table.get_ty(rhs.id).unwrap().clone();
+
+                    let id = lcx.table.store_ty(rhs_ty);
+
+                    let body = core::Expr { id, kind };
 
                     kind = core::ExprKind::Let {
                         lhs,
@@ -191,7 +191,7 @@ impl Lower for hir::Expr {
                 let cond = match &cond.kind {
                     core::ExprKind::Atom(atom) => atom.clone(),
                     _ => {
-                        let cond_ty = lcx.get_expr_ty(cond.id).unwrap();
+                        let cond_ty = lcx.get_expr_ty(cond.id).unwrap().clone();
                         let local = lcx.store_local_ty(cond_ty);
                         bind = Some((local, cond));
                         core::Atom::Name(core::Name::Local(local))
@@ -205,11 +205,11 @@ impl Lower for hir::Expr {
                 };
 
                 if let Some((lhs, rhs)) = bind {
-                    // FIXME: store the type of the new expr.
-                    let body = core::Expr {
-                        id: lcx.table.new_expr_id(),
-                        kind,
-                    };
+                    let rhs_ty = lcx.table.get_ty(rhs.id).unwrap().clone();
+
+                    let id = lcx.table.store_ty(rhs_ty);
+
+                    let body = core::Expr { id, kind };
 
                     kind = core::ExprKind::Let {
                         lhs,
