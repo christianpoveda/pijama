@@ -45,6 +45,10 @@ impl Unifier {
                     .collect(),
                 return_ty: Box::new(self.instantiate(*return_ty)),
             },
+            // if the type is a tuple, apply the substitutions recursively on the fields.
+            inference::Ty::Tuple { fields } => ty::Ty::Tuple {
+                fields: fields.into_iter().map(|ty| self.instantiate(ty)).collect(),
+            },
             // Otherwise, left the type as it is.
             inference::Ty::Base(base) => ty::Ty::Base(base),
         }
@@ -83,6 +87,12 @@ impl UnifierBuilder {
                     self.apply_substitutions(ty);
                 }
                 self.apply_substitutions(return_ty.as_mut());
+            }
+            // if the type is a tuple, apply the substitutions recursively on the fields.
+            inference::Ty::Tuple { fields } => {
+                for ty in fields {
+                    self.apply_substitutions(ty);
+                }
             }
             // Otherwise, left the type as it is.
             inference::Ty::Base(_) => (),
@@ -132,6 +142,14 @@ fn try_concrete(ty: inference::Ty) -> TyResult<ty::Ty> {
                 params_ty,
                 return_ty,
             })
+        }
+        inference::Ty::Tuple { fields } => {
+            let fields = fields
+                .into_iter()
+                .map(try_concrete)
+                .collect::<TyResult<Vec<ty::Ty>>>()?;
+
+            Ok(ty::Ty::Tuple { fields })
         }
     }
 }

@@ -166,6 +166,25 @@ impl<'tcx> Checker<'tcx> {
                     // Keep unifying.
                     self.unify(builder)?;
                 }
+                // If both sides are tuples. Unify each type inside them recursively.
+                (Ty::Tuple { fields: fields_ty1 }, Ty::Tuple { fields: fields_ty2 }) => {
+                    // Error if the lengths of the tuples do not match.
+                    if fields_ty1.len() != fields_ty2.len() {
+                        // FIXME: Technically this is not an arity mismatch
+                        return Err(TyError::ArityMismatch {
+                            expected: fields_ty1.len(),
+                            found: fields_ty2.len(),
+                        });
+                    }
+
+                    // The types of the fields must be equal one-to-one.
+                    for (lhs, rhs) in fields_ty1.into_iter().zip(fields_ty2.into_iter()) {
+                        self.add_constraint(lhs, rhs);
+                    }
+
+                    // Keep unifying.
+                    self.unify(builder)?;
+                }
                 // Otherwise, the constraint cannot be satisified.
                 (expected, found) => return Err(TyError::TypeMismatch { expected, found }),
             }

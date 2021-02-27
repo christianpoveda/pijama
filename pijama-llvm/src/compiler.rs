@@ -175,6 +175,11 @@ impl<'ctx> Compiler<'ctx> {
                     .ptr_type(AddressSpace::Global)
                     .into()
             }
+            Ty::Tuple { fields } => {
+                let fields: Vec<_> = fields.iter().map(|ty| self.lower_ty(ty)).collect();
+
+                self.ctx.struct_type(&fields, false).into()
+            }
         }
     }
 

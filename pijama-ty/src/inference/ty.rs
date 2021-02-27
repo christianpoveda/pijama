@@ -26,6 +26,8 @@ pub enum Ty {
         /// The return type.
         return_ty: Box<Self>,
     },
+    /// A tuple type.
+    Tuple { fields: Vec<Self> },
 }
 
 impl Ty {
@@ -41,6 +43,7 @@ impl Ty {
                 params_ty.iter().any(|ty| ty.contains_hole(hole_id))
                     || return_ty.contains_hole(hole_id)
             }
+            Ty::Tuple { fields } => fields.iter().any(|ty| ty.contains_hole(hole_id)),
         }
     }
 }

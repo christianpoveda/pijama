@@ -33,6 +33,12 @@ impl Substitution {
                 }
                 self.apply_to(return_ty.as_mut());
             }
+            // If the type is a tuple, apply this substitution recursively on the fields.
+            Ty::Tuple { fields } => {
+                for ty in fields {
+                    self.apply_to(ty);
+                }
+            }
             // Otherwise, left the type as it is.
             Ty::Hole(_) | Ty::Base(_) => (),
         }

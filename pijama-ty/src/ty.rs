@@ -15,4 +15,6 @@ pub enum Ty {
         /// The return type.
         return_ty: Box<Self>,
     },
+    /// A tuple type.
+    Tuple { fields: Vec<Self> },
 }
