@@ -7,8 +7,9 @@ impl Lower for hir::Expr {
     type Output = core::Expr;
 
     fn lower_with(self, lcx: &mut LowerContext) -> LowerResult<Self::Output> {
-        // Lowering expressions is straightforward because they are the same.
-        let kind = match self.kind {
+        let mut binds = Vec::new();
+
+        let mut kind = match self.kind {
             hir::ExprKind::Atom(atom) => core::ExprKind::Atom(lcx.lower(atom)?),
             hir::ExprKind::Let { lhs, rhs, body } => core::ExprKind::Let {
                 lhs: lcx.lower(lhs)?,
@@ -16,45 +17,15 @@ impl Lower for hir::Expr {
                 body: Box::new(lcx.lower(*body)?),
             },
             hir::ExprKind::Call { func, args } => {
-                let mut binds = Vec::new();
+                // FIXME: allow arbitrary funcs
+                let func = lcx.lower(func)?;
 
-                let mut kind = core::ExprKind::Call {
-                    func: lcx.lower(func)?,
-                    args: args
-                        .into_iter()
-                        .map(|arg| {
-                            let arg = lcx.lower(arg)?;
+                let args = args
+                    .into_iter()
+                    .map(|expr| lower_into_atom(expr, lcx, &mut binds))
+                    .collect::<LowerResult<Vec<_>>>()?;
 
-                            let arg = match &arg.kind {
-                                core::ExprKind::Atom(atom) => atom.clone(),
-                                _ => {
-                                    let arg_ty = lcx.get_expr_ty(arg.id).unwrap().clone();
-                                    let local = lcx.store_local_ty(arg_ty);
-                                    binds.push((local, arg));
-                                    core::Atom::Name(core::Name::Local(local))
-                                }
-                            };
-
-                            Ok(arg)
-                        })
-                        .collect::<LowerResult<Vec<_>>>()?,
-                };
-
-                while let Some((lhs, rhs)) = binds.pop() {
-                    let body_ty = lcx.table.get_ty(self.id).unwrap().clone();
-
-                    let id = lcx.table.store_ty(body_ty);
-
-                    let body = core::Expr { id, kind };
-
-                    kind = core::ExprKind::Let {
-                        lhs,
-                        rhs: Box::new(rhs),
-                        body: Box::new(body),
-                    }
-                }
-
-                kind
+                core::ExprKind::Call { func, args }
             }
             hir::ExprKind::UnaryOp { un_op, op } => {
                 let un_op = match un_op {
@@ -62,37 +33,9 @@ impl Lower for hir::Expr {
                     hir::UnOp::Neg => core::UnOp::Neg,
                 };
 
-                let op = lcx.lower(*op)?;
+                let op = lower_into_atom(*op, lcx, &mut binds)?;
 
-                let mut bind = None;
-
-                let op = match &op.kind {
-                    core::ExprKind::Atom(atom) => atom.clone(),
-                    _ => {
-                        let op_ty = lcx.get_expr_ty(op.id).unwrap().clone();
-                        let local = lcx.store_local_ty(op_ty);
-                        bind = Some((local, op));
-                        core::Atom::Name(core::Name::Local(local))
-                    }
-                };
-
-                let mut kind = core::ExprKind::UnaryOp { un_op, op };
-
-                if let Some((lhs, rhs)) = bind {
-                    let body_ty = lcx.table.get_ty(self.id).unwrap().clone();
-
-                    let id = lcx.table.store_ty(body_ty);
-
-                    let body = core::Expr { id, kind };
-
-                    kind = core::ExprKind::Let {
-                        lhs,
-                        rhs: Box::new(rhs),
-                        body: Box::new(body),
-                    }
-                }
-
-                kind
+                core::ExprKind::UnaryOp { un_op, op }
             }
             hir::ExprKind::BinaryOp {
                 bin_op,
@@ -115,153 +58,76 @@ impl Lower for hir::Expr {
                     hir::BinOp::Gte => core::BinOp::Gte,
                 };
 
-                let left_op = lcx.lower(*left_op)?;
+                let left_op = lower_into_atom(*left_op, lcx, &mut binds)?;
+                let right_op = lower_into_atom(*right_op, lcx, &mut binds)?;
 
-                let mut left_bind = None;
-
-                let left_op = match &left_op.kind {
-                    core::ExprKind::Atom(atom) => atom.clone(),
-                    _ => {
-                        let op_ty = lcx.get_expr_ty(left_op.id).unwrap().clone();
-                        let local = lcx.store_local_ty(op_ty);
-                        left_bind = Some((local, left_op));
-                        core::Atom::Name(core::Name::Local(local))
-                    }
-                };
-
-                let right_op = lcx.lower(*right_op)?;
-
-                let mut right_bind = None;
-
-                let right_op = match &right_op.kind {
-                    core::ExprKind::Atom(atom) => atom.clone(),
-                    _ => {
-                        let op_ty = lcx.get_expr_ty(right_op.id).unwrap().clone();
-                        let local = lcx.store_local_ty(op_ty);
-                        right_bind = Some((local, right_op));
-                        core::Atom::Name(core::Name::Local(local))
-                    }
-                };
-
-                let mut kind = core::ExprKind::BinaryOp {
+                core::ExprKind::BinaryOp {
                     bin_op,
                     left_op,
                     right_op,
-                };
-
-                if let Some((lhs, rhs)) = right_bind {
-                    let body_ty = lcx.table.get_ty(self.id).unwrap().clone();
-
-                    let id = lcx.table.store_ty(body_ty);
-
-                    let body = core::Expr { id, kind };
-
-                    kind = core::ExprKind::Let {
-                        lhs,
-                        rhs: Box::new(rhs),
-                        body: Box::new(body),
-                    }
                 }
-
-                if let Some((lhs, rhs)) = left_bind {
-                    let body_ty = lcx.table.get_ty(self.id).unwrap().clone();
-
-                    let id = lcx.table.store_ty(body_ty);
-
-                    let body = core::Expr { id, kind };
-
-                    kind = core::ExprKind::Let {
-                        lhs,
-                        rhs: Box::new(rhs),
-                        body: Box::new(body),
-                    }
-                }
-
-                kind
             }
             hir::ExprKind::Cond {
                 cond,
                 do_branch,
                 else_branch,
             } => {
-                let cond = lcx.lower(*cond)?;
+                let cond = lower_into_atom(*cond, lcx, &mut binds)?;
+                let do_branch = lcx.lower(*do_branch)?;
+                let else_branch = lcx.lower(*else_branch)?;
 
-                let mut bind = None;
-
-                let cond = match &cond.kind {
-                    core::ExprKind::Atom(atom) => atom.clone(),
-                    _ => {
-                        let cond_ty = lcx.get_expr_ty(cond.id).unwrap().clone();
-                        let local = lcx.store_local_ty(cond_ty);
-                        bind = Some((local, cond));
-                        core::Atom::Name(core::Name::Local(local))
-                    }
-                };
-
-                let mut kind = core::ExprKind::Cond {
+                core::ExprKind::Cond {
                     cond,
-                    do_branch: Box::new(lcx.lower(*do_branch)?),
-                    else_branch: Box::new(lcx.lower(*else_branch)?),
-                };
-
-                if let Some((lhs, rhs)) = bind {
-                    let body_ty = lcx.table.get_ty(self.id).unwrap().clone();
-
-                    let id = lcx.table.store_ty(body_ty);
-
-                    let body = core::Expr { id, kind };
-
-                    kind = core::ExprKind::Let {
-                        lhs,
-                        rhs: Box::new(rhs),
-                        body: Box::new(body),
-                    }
+                    do_branch: Box::new(do_branch),
+                    else_branch: Box::new(else_branch),
                 }
-
-                kind
             }
             hir::ExprKind::Tuple { fields } => {
-                let mut binds = Vec::new();
+                let fields = fields
+                    .into_iter()
+                    .map(|expr| lower_into_atom(expr, lcx, &mut binds))
+                    .collect::<LowerResult<Vec<_>>>()?;
 
-                let mut kind = core::ExprKind::Tuple {
-                    fields: fields
-                        .into_iter()
-                        .map(|field| {
-                            let field = lcx.lower(field)?;
-
-                            let field = match &field.kind {
-                                core::ExprKind::Atom(atom) => atom.clone(),
-                                _ => {
-                                    let field_ty = lcx.get_expr_ty(field.id).unwrap().clone();
-                                    let local = lcx.store_local_ty(field_ty);
-                                    binds.push((local, field));
-                                    core::Atom::Name(core::Name::Local(local))
-                                }
-                            };
-
-                            Ok(field)
-                        })
-                        .collect::<LowerResult<Vec<_>>>()?,
-                };
-
-                while let Some((lhs, rhs)) = binds.pop() {
-                    let body_ty = lcx.table.get_ty(self.id).unwrap().clone();
-
-                    let id = lcx.table.store_ty(body_ty);
-
-                    let body = core::Expr { id, kind };
-
-                    kind = core::ExprKind::Let {
-                        lhs,
-                        rhs: Box::new(rhs),
-                        body: Box::new(body),
-                    }
-                }
-
-                kind
+                core::ExprKind::Tuple { fields }
             }
         };
 
+        let ty = lcx.get_expr_ty(self.id).unwrap().clone();
+
+        for (lhs, rhs) in binds.into_iter().rev() {
+            let body = core::Expr {
+                id: lcx.table.store_ty(ty.clone()),
+                kind,
+            };
+
+            kind = core::ExprKind::Let {
+                lhs,
+                rhs: Box::new(rhs),
+                body: Box::new(body),
+            };
+        }
+
         Ok(core::Expr { id: self.id, kind })
+    }
+}
+
+fn lower_into_atom(
+    expr: hir::Expr,
+    lcx: &mut LowerContext,
+    binds: &mut Vec<(core::Local, core::Expr)>,
+) -> LowerResult<core::Atom> {
+    match lcx.lower(expr)? {
+        core::Expr {
+            kind: core::ExprKind::Atom(atom),
+            ..
+        } => Ok(atom),
+        expr => {
+            let expr_ty = lcx.get_expr_ty(expr.id).unwrap().clone();
+            let local = lcx.store_local_ty(expr_ty);
+
+            binds.push((local, expr));
+
+            Ok(core::Atom::Name(core::Name::Local(local)))
+        }
     }
 }
