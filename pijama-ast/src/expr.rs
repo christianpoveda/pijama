@@ -44,4 +44,7 @@ pub enum ExprKind<'source> {
         /// The expression to be evaluated if the condition is false.
         else_branch: Box<Expr<'source>>,
     },
+    Tuple {
+        fields: Vec<Expr<'source>>,
+    },
 }

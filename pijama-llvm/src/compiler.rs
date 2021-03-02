@@ -1,7 +1,8 @@
 use crate::compile::Compile;
 
 use pijama_core::{Expr, FuncId, Local, Program};
-use pijama_ty::{base::BaseTy, ty::Ty};
+use pijama_ty::{base::BaseTy, ty::Ty, ExprId};
+use pijama_tycheck::Table;
 use pijama_utils::index::IndexMap;
 
 use inkwell::{
@@ -114,6 +115,12 @@ impl<'ctx, 'func> FuncCompiler<'ctx, 'func> {
     pub(crate) fn builder(&self) -> &Builder<'ctx> {
         &self.compiler.builder
     }
+
+    pub(crate) fn get_ty(&self, expr_id: ExprId) -> Option<BasicTypeEnum<'ctx>> {
+        let ty = self.compiler.table.get_ty(expr_id)?;
+
+        Some(self.compiler.lower_ty(ty))
+    }
 }
 
 /// A compiler for programs.
@@ -129,17 +136,20 @@ pub(crate) struct Compiler<'ctx> {
     builder: Builder<'ctx>,
     /// The values of each function in the program.
     funcs: IndexMap<FuncId, FunctionValue<'ctx>>,
+
+    table: Table,
 }
 
 impl<'ctx> Compiler<'ctx> {
     /// Create a new empty compiler.
-    pub(crate) fn new(ctx: &'ctx Context) -> Self {
+    pub(crate) fn new(ctx: &'ctx Context, table: Table) -> Self {
         Self {
             ctx,
             // We compile everything into a single module for now.
             module: ctx.create_module(""),
             builder: ctx.create_builder(),
             funcs: IndexMap::new(),
+            table,
         }
     }
 

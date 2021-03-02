@@ -112,6 +112,14 @@ impl InferTy for Expr {
                 // The type of this expression is the type of the branches.
                 do_ty
             }
+            ExprKind::Tuple { fields } => {
+                let fields = fields
+                    .iter()
+                    .map(|field| field.infer_ty(checker))
+                    .collect::<TyResult<Vec<_>>>()?;
+
+                Ty::Tuple { fields }
+            }
         };
 
         // Store the infered type for the expression.

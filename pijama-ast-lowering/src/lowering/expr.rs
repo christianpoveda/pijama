@@ -98,6 +98,12 @@ impl<'source, 'tcx> Lower<'source, 'tcx> for ast::Expr<'source> {
                 do_branch: Box::new(lcx.lower(*do_branch)?),
                 else_branch: Box::new(lcx.lower(*else_branch)?),
             },
+            ast::ExprKind::Tuple { fields } => hir::ExprKind::Tuple {
+                fields: fields
+                    .into_iter()
+                    .map(|field| lcx.lower(field))
+                    .collect::<LowerResult<Vec<_>>>()?,
+            },
         };
 
         Ok(hir::Expr { id, kind })

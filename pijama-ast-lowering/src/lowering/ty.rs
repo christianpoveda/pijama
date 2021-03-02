@@ -34,6 +34,12 @@ impl<'source, 'tcx> Lower<'source, 'tcx> for ast::Ty<'source> {
                     .collect::<LowerResult<Vec<Ty>>>()?,
                 return_ty: Box::new(lcx.lower(*return_ty)?),
             }),
+            ast::TyKind::Tuple { fields } => Ok(Ty::Tuple {
+                fields: fields
+                    .into_iter()
+                    .map(|ty| lcx.lower(ty))
+                    .collect::<LowerResult<Vec<Ty>>>()?,
+            }),
         }
     }
 }

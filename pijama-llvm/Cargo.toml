@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 pijama-core = { path = "../pijama-core" }
 pijama-ty = { path = "../pijama-ty" }
+pijama-tycheck = { path = "../pijama-tycheck" }
 pijama-utils = { path = "../pijama-utils" }
 
 inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = ["llvm10-0"] }

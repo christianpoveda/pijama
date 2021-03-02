@@ -135,6 +135,11 @@ BaseExprKind: ast::ExprKind<'source> = {
     <func:Ident> "(" <args:Sep<Expr, ",">> ")" => {
         ast::ExprKind::Call { func, args }
     },
+    "(" <fields:(<Expr> ",")+> <field:Expr> ")" => {
+        let mut fields = fields;
+        fields.push(field);
+        ast::ExprKind::Tuple { fields }
+    },
     "(" <ExprKind> ")"
 }
 
@@ -151,11 +156,16 @@ Ty: ast::Ty<'source> = {
 
 TyKind: ast::TyKind<'source> = {
     <Ident> => ast::TyKind::Base(<>),
-    "(" <params_ty:Sep<Ty, ",">> ")" "->" <return_ty:Ty> => {
+    "fn" "(" <params_ty:Sep<Ty, ",">> ")" "->" <return_ty:Ty> => {
         ast::TyKind::Func {
             params_ty,
             return_ty: Box::new(return_ty),
         }
+    },
+    "(" <fields:(<Ty> ",")+> <field:Ty> ")" => {
+        let mut fields = fields;
+        fields.push(field);
+        ast::TyKind::Tuple { fields }
     },
 }
 

@@ -52,12 +52,12 @@ impl Compiler {
         let (unifier, table) = pijama_tycheck::check_program(&tcx, &hir).unwrap();
 
         // Lower the HIR.
-        let core = pijama_hir_lowering::lower_hir(unifier, table, hir).unwrap();
+        let (core, table) = pijama_hir_lowering::lower_hir(unifier, table, hir).unwrap();
 
         let obj_path = config.path.with_extension("o");
 
         // Write the LLVM object file.
-        pijama_llvm::compile(core, &obj_path).unwrap();
+        pijama_llvm::compile(core, table, &obj_path).unwrap();
 
         let exec_path = config.path.with_extension("out");
 

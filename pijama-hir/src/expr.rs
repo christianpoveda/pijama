@@ -70,4 +70,7 @@ pub enum ExprKind {
         /// The expression to be evaluated if the condition is false.
         else_branch: Box<Expr>,
     },
+    Tuple {
+        fields: Vec<Expr>,
+    },
 }

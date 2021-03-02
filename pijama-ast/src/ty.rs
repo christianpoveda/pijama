@@ -16,4 +16,7 @@ pub enum TyKind<'source> {
         /// The return type.
         return_ty: Box<Ty<'source>>,
     },
+    Tuple {
+        fields: Vec<Ty<'source>>,
+    },
 }

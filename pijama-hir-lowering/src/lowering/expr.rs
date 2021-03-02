@@ -41,9 +41,9 @@ impl Lower for hir::Expr {
                 };
 
                 while let Some((lhs, rhs)) = binds.pop() {
-                    let rhs_ty = lcx.table.get_ty(rhs.id).unwrap().clone();
+                    let body_ty = lcx.table.get_ty(self.id).unwrap().clone();
 
-                    let id = lcx.table.store_ty(rhs_ty);
+                    let id = lcx.table.store_ty(body_ty);
 
                     let body = core::Expr { id, kind };
 
@@ -79,9 +79,9 @@ impl Lower for hir::Expr {
                 let mut kind = core::ExprKind::UnaryOp { un_op, op };
 
                 if let Some((lhs, rhs)) = bind {
-                    let rhs_ty = lcx.table.get_ty(rhs.id).unwrap().clone();
+                    let body_ty = lcx.table.get_ty(self.id).unwrap().clone();
 
-                    let id = lcx.table.store_ty(rhs_ty);
+                    let id = lcx.table.store_ty(body_ty);
 
                     let body = core::Expr { id, kind };
 
@@ -150,9 +150,9 @@ impl Lower for hir::Expr {
                 };
 
                 if let Some((lhs, rhs)) = right_bind {
-                    let rhs_ty = lcx.table.get_ty(rhs.id).unwrap().clone();
+                    let body_ty = lcx.table.get_ty(self.id).unwrap().clone();
 
-                    let id = lcx.table.store_ty(rhs_ty);
+                    let id = lcx.table.store_ty(body_ty);
 
                     let body = core::Expr { id, kind };
 
@@ -164,9 +164,9 @@ impl Lower for hir::Expr {
                 }
 
                 if let Some((lhs, rhs)) = left_bind {
-                    let rhs_ty = lcx.table.get_ty(rhs.id).unwrap().clone();
+                    let body_ty = lcx.table.get_ty(self.id).unwrap().clone();
 
-                    let id = lcx.table.store_ty(rhs_ty);
+                    let id = lcx.table.store_ty(body_ty);
 
                     let body = core::Expr { id, kind };
 
@@ -205,9 +205,49 @@ impl Lower for hir::Expr {
                 };
 
                 if let Some((lhs, rhs)) = bind {
-                    let rhs_ty = lcx.table.get_ty(rhs.id).unwrap().clone();
+                    let body_ty = lcx.table.get_ty(self.id).unwrap().clone();
 
-                    let id = lcx.table.store_ty(rhs_ty);
+                    let id = lcx.table.store_ty(body_ty);
+
+                    let body = core::Expr { id, kind };
+
+                    kind = core::ExprKind::Let {
+                        lhs,
+                        rhs: Box::new(rhs),
+                        body: Box::new(body),
+                    }
+                }
+
+                kind
+            }
+            hir::ExprKind::Tuple { fields } => {
+                let mut binds = Vec::new();
+
+                let mut kind = core::ExprKind::Tuple {
+                    fields: fields
+                        .into_iter()
+                        .map(|field| {
+                            let field = lcx.lower(field)?;
+
+                            let field = match &field.kind {
+                                core::ExprKind::Atom(atom) => atom.clone(),
+                                _ => {
+                                    let field_ty = lcx.get_expr_ty(field.id).unwrap().clone();
+                                    let local = lcx.store_local_ty(field_ty);
+                                    binds.push((local, field));
+                                    core::Atom::Name(core::Name::Local(local))
+                                }
+                            };
+
+                            Ok(field)
+                        })
+                        .collect::<LowerResult<Vec<_>>>()?,
+                };
+
+                while let Some((lhs, rhs)) = binds.pop() {
+                    let body_ty = lcx.table.get_ty(self.id).unwrap().clone();
+
+                    let id = lcx.table.store_ty(body_ty);
 
                     let body = core::Expr { id, kind };
 

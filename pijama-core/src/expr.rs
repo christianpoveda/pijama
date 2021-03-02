@@ -82,4 +82,6 @@ pub enum ExprKind {
         /// The expression to be evaluated if the condition is false.
         else_branch: Box<Expr>,
     },
+    /// A tuple expression,
+    Tuple { fields: Vec<Atom> },
 }

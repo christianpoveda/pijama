@@ -16,6 +16,9 @@ pub fn lower_hir(
     unifier: Unifier,
     table: Table,
     program: hir::Program,
-) -> LowerResult<core::Program> {
-    LowerContext::new(unifier, table).lower(program)
+) -> LowerResult<(core::Program, Table)> {
+    let mut lcx = LowerContext::new(unifier, table);
+    let program = lcx.lower(program)?;
+
+    Ok((program, lcx.table))
 }
