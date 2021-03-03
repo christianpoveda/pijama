@@ -1,5 +1,6 @@
 pub mod base;
 pub mod inference;
+pub mod label;
 pub mod ty;
 
 use pijama_utils::new_index;

@@ -47,4 +47,8 @@ pub enum ExprKind<'source> {
     Tuple {
         fields: Vec<Expr<'source>>,
     },
+    Projection {
+        tuple: Box<Expr<'source>>,
+        index: usize,
+    },
 }

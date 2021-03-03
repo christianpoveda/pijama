@@ -1,6 +1,7 @@
 use crate::{compile::Compile, compiler::FuncCompiler};
 
 use pijama_core::{BinOp, Expr, ExprKind};
+use pijama_utils::index::Index;
 
 use inkwell::{values::BasicValueEnum, IntPredicate};
 
@@ -114,21 +115,32 @@ impl<'ctx> Compile<'ctx> for Expr {
                 // This should be a basic value.
                 join_value.as_basic_value()
             }
-            ExprKind::Tuple { fields } => {
+            ExprKind::Record { fields } => {
                 let ty = compiler.get_ty(self.id).unwrap().into_struct_type();
 
                 let mut value = ty.get_undef();
 
-                for (index, field) in fields.into_iter().enumerate() {
+                // FIXME: THe index of a label doesn't have to be the actual index in the struct.
+                for (label, field) in fields.into_iter() {
                     let field = compiler.compile(field);
                     value = compiler
                         .builder()
-                        .build_insert_value(value, field, index as u32, "")
+                        .build_insert_value(value, field, label.index() as u32, "")
                         .unwrap()
                         .into_struct_value();
                 }
 
                 value.into()
+            }
+            ExprKind::Projection { record, label } => {
+                let value = compiler.compile(record).into_struct_value();
+
+                // FIXME: THe index of a label doesn't have to be the actual index in the struct.
+                compiler
+                    .builder()
+                    .build_extract_value(value, label.index() as u32, "")
+                    .unwrap()
+                    .into()
             }
         }
     }

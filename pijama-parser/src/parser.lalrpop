@@ -140,6 +140,12 @@ BaseExprKind: ast::ExprKind<'source> = {
         fields.push(field);
         ast::ExprKind::Tuple { fields }
     },
+    <tuple:BaseExpr> "." <index:"int"> => {
+        ast::ExprKind::Projection {
+            tuple: Box::new(tuple),
+            index: index as usize,
+        }
+    },
     "(" <ExprKind> ")"
 }
 
@@ -258,6 +264,7 @@ extern {
         "=" => Token::Assign,
         ":" => Token::Colon,
         "," => Token::Comma,
+        "." => Token::Dot,
         "->" => Token::Arrow,
         "(" => Token::OpenParen,
         ")" => Token::CloseParen,

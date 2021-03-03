@@ -1,4 +1,4 @@
-use pijama_ty::inference::{HoleId, Ty};
+use pijama_ty::inference::{Ty, TyVar};
 
 pub type TyResult<T = ()> = Result<T, TyError>;
 
@@ -12,5 +12,5 @@ pub enum TyError {
     /// The expected type does not match the one found.
     TypeMismatch { expected: Ty, found: Ty },
     /// The infered type still has inference variables in it.
-    HoleFound(HoleId),
+    HoleFound(TyVar),
 }

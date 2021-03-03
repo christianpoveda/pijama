@@ -2,6 +2,8 @@ use crate::{context::LowerContext, error::LowerResult, lowering::Lower};
 
 use pijama_ast as ast;
 use pijama_hir as hir;
+use pijama_ty::label::Label;
+use pijama_utils::index::Index;
 
 impl<'source, 'tcx> Lower<'source, 'tcx> for ast::Expr<'source> {
     type Output = hir::Expr;
@@ -98,11 +100,18 @@ impl<'source, 'tcx> Lower<'source, 'tcx> for ast::Expr<'source> {
                 do_branch: Box::new(lcx.lower(*do_branch)?),
                 else_branch: Box::new(lcx.lower(*else_branch)?),
             },
-            ast::ExprKind::Tuple { fields } => hir::ExprKind::Tuple {
+            ast::ExprKind::Tuple { fields } => hir::ExprKind::Record {
+                // FIXME: actual records require to map this differently.
                 fields: fields
                     .into_iter()
-                    .map(|field| lcx.lower(field))
+                    .enumerate()
+                    .map(|(index, field)| Ok((Label::new(index), lcx.lower(field)?)))
                     .collect::<LowerResult<Vec<_>>>()?,
+            },
+            ast::ExprKind::Projection { tuple, index } => hir::ExprKind::Projection {
+                record: Box::new(lcx.lower(*tuple)?),
+                // FIXME: actual records require to map this differently.
+                label: Label::new(index),
             },
         };
 

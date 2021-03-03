@@ -4,7 +4,7 @@ use crate::{
     prim_op::{BinOp, UnOp},
 };
 
-use pijama_ty::ExprId;
+use pijama_ty::{label::Label, ExprId};
 
 /// An expression.
 ///
@@ -82,6 +82,11 @@ pub enum ExprKind {
         /// The expression to be evaluated if the condition is false.
         else_branch: Box<Expr>,
     },
-    /// A tuple expression,
-    Tuple { fields: Vec<Atom> },
+    Record {
+        fields: Vec<(Label, Atom)>,
+    },
+    Projection {
+        record: Atom,
+        label: Label,
+    },
 }

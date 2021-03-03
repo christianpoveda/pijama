@@ -82,13 +82,18 @@ impl Lower for hir::Expr {
                     else_branch: Box::new(else_branch),
                 }
             }
-            hir::ExprKind::Tuple { fields } => {
+            hir::ExprKind::Record { fields } => {
                 let fields = fields
                     .into_iter()
-                    .map(|expr| lower_into_atom(expr, lcx, &mut binds))
+                    .map(|(label, expr)| Ok((label, lower_into_atom(expr, lcx, &mut binds)?)))
                     .collect::<LowerResult<Vec<_>>>()?;
 
-                core::ExprKind::Tuple { fields }
+                core::ExprKind::Record { fields }
+            }
+            hir::ExprKind::Projection { record, label } => {
+                let record = lower_into_atom(*record, lcx, &mut binds)?;
+
+                core::ExprKind::Projection { record, label }
             }
         };
 

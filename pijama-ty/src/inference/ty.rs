@@ -1,11 +1,14 @@
-use crate::base::BaseTy;
+use crate::{
+    base::BaseTy,
+    inference::row::{Row, RowVar},
+};
 
 use pijama_utils::new_index;
 
 new_index! {
     #[doc = "An unique ID used to represent inference variables."]
     #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
-    HoleId
+    TyVar
 }
 
 /// A type with holes.
@@ -18,7 +21,7 @@ pub enum Ty {
     /// A base type.
     Base(BaseTy),
     /// A type to be infered.
-    Hole(HoleId),
+    Var(TyVar),
     /// A function type.
     Func {
         /// The type of each parameter.
@@ -26,24 +29,35 @@ pub enum Ty {
         /// The return type.
         return_ty: Box<Self>,
     },
-    /// A tuple type.
-    Tuple { fields: Vec<Self> },
+    /// A record type.
+    Record(Row),
 }
 
 impl Ty {
     /// Check if the type has a "hole" type with the given ID.
-    pub fn contains_hole(&self, hole_id: HoleId) -> bool {
+    pub fn contains_ty(&self, ty_var: TyVar) -> bool {
         match self {
             Ty::Base(_) => false,
-            Ty::Hole(id) => *id == hole_id,
+            Ty::Var(var) => *var == ty_var,
+            Ty::Func {
+                params_ty,
+                return_ty,
+            } => params_ty.iter().any(|ty| ty.contains_ty(ty_var)) || return_ty.contains_ty(ty_var),
+            Ty::Record(row) => row.contains_ty(ty_var),
+        }
+    }
+
+    pub fn contains_row(&self, row_var: RowVar) -> bool {
+        match self {
+            Ty::Base(_) | Ty::Var(_) => false,
             Ty::Func {
                 params_ty,
                 return_ty,
             } => {
-                params_ty.iter().any(|ty| ty.contains_hole(hole_id))
-                    || return_ty.contains_hole(hole_id)
+                params_ty.iter().any(|ty| ty.contains_row(row_var))
+                    || return_ty.contains_row(row_var)
             }
-            Ty::Tuple { fields } => fields.iter().any(|ty| ty.contains_hole(hole_id)),
+            Ty::Record(row) => row.contains_row(row_var),
         }
     }
 }

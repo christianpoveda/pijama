@@ -1,7 +1,10 @@
 use crate::{checker::Checker, error::TyResult, inference::InferTy};
 
 use pijama_hir::{BinOp, Expr, ExprKind, UnOp};
-use pijama_ty::{base::BaseTy, inference::Ty};
+use pijama_ty::{
+    base::BaseTy,
+    inference::{Row, Ty},
+};
 
 impl InferTy for Expr {
     fn infer_ty(&self, checker: &mut Checker) -> TyResult<Ty> {
@@ -33,7 +36,7 @@ impl InferTy for Expr {
                     .collect::<TyResult<Vec<Ty>>>()?;
 
                 // Create a new hole for the return type.
-                let return_ty = checker.tcx.new_hole();
+                let return_ty = checker.tcx.new_ty();
 
                 // This is the type the function would have if the arguments were well-typed.
                 let rhs_ty = Ty::Func {
@@ -77,7 +80,7 @@ impl InferTy for Expr {
                     // Logic operators receive booleans and return booleans.
                     BinOp::And | BinOp::Or => (Ty::Base(BaseTy::Bool), Ty::Base(BaseTy::Bool)),
                     // Equality operators receive any type and return booleans.
-                    BinOp::Eq | BinOp::Neq => (checker.tcx.new_hole(), Ty::Base(BaseTy::Bool)),
+                    BinOp::Eq | BinOp::Neq => (checker.tcx.new_ty(), Ty::Base(BaseTy::Bool)),
                     // Comparison operators receive integers and return booleans.
                     BinOp::Lt | BinOp::Gt | BinOp::Lte | BinOp::Gte => {
                         (Ty::Base(BaseTy::Integer), Ty::Base(BaseTy::Bool))
@@ -99,12 +102,12 @@ impl InferTy for Expr {
                 do_branch,
                 else_branch,
             } => {
-                let cond = cond.infer_ty(checker)?;
+                let cond_ty = cond.infer_ty(checker)?;
                 let do_ty = do_branch.infer_ty(checker)?;
                 let else_ty = else_branch.infer_ty(checker)?;
 
                 // The type of the condition must be boolean.
-                checker.add_constraint(Ty::Base(BaseTy::Bool), cond);
+                checker.add_constraint(Ty::Base(BaseTy::Bool), cond_ty);
 
                 // The type of both branches must be the same.
                 checker.add_constraint(do_ty.clone(), else_ty);
@@ -112,13 +115,27 @@ impl InferTy for Expr {
                 // The type of this expression is the type of the branches.
                 do_ty
             }
-            ExprKind::Tuple { fields } => {
-                let fields = fields
+            ExprKind::Record { fields } => {
+                let rows = fields
                     .iter()
-                    .map(|field| field.infer_ty(checker))
+                    .map(|(label, field)| Ok((*label, field.infer_ty(checker)?)))
                     .collect::<TyResult<Vec<_>>>()?;
 
-                Ty::Tuple { fields }
+                Ty::Record(Row::strict(rows))
+            }
+            ExprKind::Projection { record, label } => {
+                let record_ty = record.infer_ty(checker)?;
+
+                let field_ty = checker.tcx.new_ty();
+
+                let row_ty = Ty::Record(Row::relaxed(
+                    vec![(*label, field_ty.clone())],
+                    checker.tcx.new_row(),
+                ));
+
+                checker.add_constraint(record_ty.clone(), row_ty);
+
+                field_ty
             }
         };
 

@@ -1,7 +1,7 @@
 //! Concrete types.
 //!
 //! This is the type representation used after type inference.
-use crate::base::BaseTy;
+use crate::{base::BaseTy, label::Label};
 
 /// A concrete type.
 #[derive(Debug, Clone)]
@@ -15,6 +15,6 @@ pub enum Ty {
         /// The return type.
         return_ty: Box<Self>,
     },
-    /// A tuple type.
-    Tuple { fields: Vec<Self> },
+    /// A record type.
+    Record { fields: Vec<(Label, Self)> },
 }

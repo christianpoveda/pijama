@@ -92,6 +92,9 @@ pub enum Token<'source> {
     /// The `,` token.
     #[token(",")]
     Comma,
+    /// The `.` token.
+    #[token(".")]
+    Dot,
     /// The `->` token.
     #[token("->")]
     Arrow,

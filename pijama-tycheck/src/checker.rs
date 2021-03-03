@@ -2,14 +2,14 @@ use crate::{
     constraint::Constraint,
     error::{TyError, TyResult},
     inference::InferTy,
-    substitution::Substitution,
+    substitution::{RowSubstitution, TySubstitution},
     table::{Table, TableBuilder},
     unifier::{Unifier, UnifierBuilder},
 };
 
 use pijama_hir::{FuncId, Local, Name, Program};
 use pijama_ty::{
-    inference::{Ty, TyContext},
+    inference::{Row, Ty, TyContext},
     ExprId,
 };
 use pijama_utils::index::IndexMap;
@@ -97,10 +97,17 @@ impl<'tcx> Checker<'tcx> {
     }
 
     /// Apply a substitution to all the remaining constraints.
-    fn update_constraints(&mut self, subst: &Substitution) {
+    fn update_constraints_ty(&mut self, subst: &TySubstitution) {
         for Constraint { lhs, rhs } in &mut self.constraints {
-            subst.apply_to(lhs);
-            subst.apply_to(rhs);
+            subst.apply_to_ty(lhs);
+            subst.apply_to_ty(rhs);
+        }
+    }
+
+    fn update_constraints_row(&mut self, subst: &RowSubstitution) {
+        for Constraint { lhs, rhs } in &mut self.constraints {
+            subst.apply_to_ty(lhs);
+            subst.apply_to_ty(rhs);
         }
     }
 
@@ -120,25 +127,25 @@ impl<'tcx> Checker<'tcx> {
             match (lhs, rhs) {
                 // If the left-hand side type is a free variable in the right-hand side, we can
                 // replace the left-hand side by the right-hand side.
-                (Ty::Hole(id), rhs) if !rhs.contains_hole(id) => {
-                    let subs = Substitution::new(id, rhs);
+                (Ty::Var(id), rhs) if !rhs.contains_ty(id) => {
+                    let subs = TySubstitution::new(id, rhs);
                     // Replace lhs by rhs in all the constraints.
-                    self.update_constraints(&subs);
+                    self.update_constraints_ty(&subs);
                     // Keep unifying.
                     self.unify(builder)?;
                     // Add this substitution to the builder.
-                    builder.add_substitution(subs);
+                    builder.add_ty_substitution(subs);
                 }
                 // If the right-hand side type is a free variable in the left-hand side, we can
                 // replace the right-hand side by the left-hand side.
-                (lhs, Ty::Hole(id)) if !lhs.contains_hole(id) => {
-                    let subs = Substitution::new(id, lhs);
+                (lhs, Ty::Var(id)) if !lhs.contains_ty(id) => {
+                    let subs = TySubstitution::new(id, lhs);
                     // Replace rhs by lhs in all the constraints.
-                    self.update_constraints(&subs);
+                    self.update_constraints_ty(&subs);
                     // Keep unifying.
                     self.unify(builder)?;
                     // Add this substitution to the builder.
-                    builder.add_substitution(subs);
+                    builder.add_ty_substitution(subs);
                 }
                 // If both sides are functions. Unify each type inside them recursively.
                 (
@@ -170,25 +177,94 @@ impl<'tcx> Checker<'tcx> {
                     // Keep unifying.
                     self.unify(builder)?;
                 }
-                // If both sides are tuples. Unify each type inside them recursively.
-                (Ty::Tuple { fields: fields_ty1 }, Ty::Tuple { fields: fields_ty2 }) => {
-                    // Error if the lengths of the tuples do not match.
-                    if fields_ty1.len() != fields_ty2.len() {
-                        // FIXME: Technically this is not an arity mismatch
-                        return Err(TyError::ArityMismatch {
-                            expected: fields_ty1.len(),
-                            found: fields_ty2.len(),
-                        });
-                    }
 
-                    // The types of the fields must be equal one-to-one.
-                    for (lhs, rhs) in fields_ty1.into_iter().zip(fields_ty2.into_iter()) {
-                        self.add_constraint(lhs, rhs);
+                (Ty::Record(mut row1), Ty::Record(mut row2)) => match row1.tail() {
+                    Some(tail) if row1.fields().is_empty() => {
+                        if row2.contains_row(tail) {
+                            panic!()
+                        }
+                        let subs = RowSubstitution::new(tail, row2);
+                        self.update_constraints_row(&subs);
+                        self.unify(builder)?;
+                        builder.add_row_substitution(subs);
                     }
+                    _ => match (row1.tail(), row2.tail()) {
+                        (None, None) => {
+                            let fields1 = row1.fields();
+                            let fields2 = row2.fields();
 
-                    // Keep unifying.
-                    self.unify(builder)?;
-                }
+                            if fields1.len() != fields2.len() {
+                                panic!()
+                            }
+
+                            for ((label1, ty1), (label2, ty2)) in fields1.iter().zip(fields2) {
+                                if label1 != label2 {
+                                    panic!()
+                                }
+
+                                self.add_constraint(ty1.clone(), ty2.clone());
+                            }
+
+                            self.unify(builder)?;
+                        }
+                        (None, Some(tail)) => {
+                            while let Some((label, ty2)) = row2.pop_field() {
+                                if let Some(ty1) = row1.remove_field(label) {
+                                    self.add_constraint(ty1, ty2)
+                                } else {
+                                    panic!()
+                                }
+                            }
+
+                            self.add_constraint(
+                                Ty::Record(Row::relaxed(vec![], tail)),
+                                Ty::Record(row1),
+                            );
+
+                            self.unify(builder)?;
+                        }
+                        (Some(_), None) => unreachable!(),
+                        (Some(tail1), Some(tail2)) => {
+                            let mut common = Vec::new();
+
+                            for (label, ty1) in row1.fields() {
+                                let label = *label;
+
+                                if let Some(ty2) = row2.get_ty(label) {
+                                    common.push(label);
+                                    self.add_constraint(ty1.clone(), ty2.clone())
+                                }
+                            }
+
+                            for label in common {
+                                row1.remove_field(label);
+                                row2.remove_field(label);
+                            }
+
+                            let tail = self.tcx.new_row();
+
+                            if row1.contains_row(tail2) {
+                                panic!()
+                            } else {
+                                row1.set_tail(Some(tail));
+
+                                let subs = RowSubstitution::new(tail2, row1);
+                                self.update_constraints_row(&subs);
+                                self.unify(builder)?;
+                            }
+
+                            if row2.contains_row(tail1) {
+                                panic!()
+                            } else {
+                                row2.set_tail(Some(tail));
+
+                                let subs = RowSubstitution::new(tail1, row2);
+                                self.update_constraints_row(&subs);
+                                self.unify(builder)?;
+                            }
+                        }
+                    },
+                },
                 // Otherwise, the constraint cannot be satisified.
                 (expected, found) => return Err(TyError::TypeMismatch { expected, found }),
             }

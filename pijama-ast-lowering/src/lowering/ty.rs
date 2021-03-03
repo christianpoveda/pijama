@@ -5,7 +5,12 @@ use crate::{
 };
 
 use pijama_ast as ast;
-use pijama_ty::{base::BaseTy, inference::Ty};
+use pijama_ty::{
+    base::BaseTy,
+    inference::{Row, Ty},
+    label::Label,
+};
+use pijama_utils::index::Index;
 
 impl<'source, 'tcx> Lower<'source, 'tcx> for ast::Ty<'source> {
     type Output = Ty;
@@ -34,12 +39,16 @@ impl<'source, 'tcx> Lower<'source, 'tcx> for ast::Ty<'source> {
                     .collect::<LowerResult<Vec<Ty>>>()?,
                 return_ty: Box::new(lcx.lower(*return_ty)?),
             }),
-            ast::TyKind::Tuple { fields } => Ok(Ty::Tuple {
-                fields: fields
-                    .into_iter()
-                    .map(|ty| lcx.lower(ty))
-                    .collect::<LowerResult<Vec<Ty>>>()?,
-            }),
+            ast::TyKind::Tuple { fields } => Ok(Ty::Record(
+                // FIXME: actual records require to map this differently.
+                Row::strict(
+                    fields
+                        .into_iter()
+                        .enumerate()
+                        .map(|(index, ty)| Ok((Label::new(index), lcx.lower(ty)?)))
+                        .collect::<LowerResult<Vec<_>>>()?,
+                ),
+            )),
         }
     }
 }
@@ -54,7 +63,7 @@ impl<'source, 'tcx> Lower<'source, 'tcx> for Option<ast::Ty<'source>> {
         if let Some(ty) = self {
             lcx.lower(ty)
         } else {
-            Ok(lcx.tcx.new_hole())
+            Ok(lcx.tcx.new_ty())
         }
     }
 }
