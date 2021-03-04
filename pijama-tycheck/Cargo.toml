@@ -10,3 +10,5 @@ edition = "2018"
 pijama-hir = { path = "../pijama-hir" }
 pijama-ty = { path = "../pijama-ty" }
 pijama-utils = { path = "../pijama-utils" }
+
+log = { version = "0.4" }

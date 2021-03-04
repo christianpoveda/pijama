@@ -14,6 +14,8 @@ fn main() {
         codegen: true,
     };
 
+    env_logger::init();
+
     // Run the compiler.
     Compiler::new().run(config);
 }

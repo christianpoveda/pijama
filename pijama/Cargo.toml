@@ -8,3 +8,5 @@ edition = "2018"
 
 [dependencies]
 pijama-interface = { path = "../pijama-interface" }
+
+env_logger = { version = "0.8.3" }

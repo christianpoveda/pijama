@@ -1,5 +1,7 @@
 use pijama_ty::inference::{HoleId, Ty};
 
+use pijama_utils::show::Show;
+
 /// A function from types to types.
 ///
 /// This represents a substitution function between types.
@@ -42,5 +44,11 @@ impl Substitution {
             // Otherwise, left the type as it is.
             Ty::Hole(_) | Ty::Base(_) => (),
         }
+    }
+}
+
+impl<Ctx> Show<Ctx> for Substitution {
+    fn show(&self, ctx: &Ctx, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} -> {}", self.input.wrap(ctx), self.output.wrap(ctx))
     }
 }

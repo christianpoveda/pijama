@@ -12,7 +12,9 @@ use pijama_ty::{
     inference::{Ty, TyContext},
     ExprId,
 };
-use pijama_utils::index::IndexMap;
+use pijama_utils::{index::IndexMap, show::Show};
+
+use log::{info, trace};
 
 use std::collections::VecDeque;
 
@@ -93,11 +95,15 @@ impl<'tcx> Checker<'tcx> {
 
     /// Add a constraint that the program must satisfy to be well-typed.
     pub(crate) fn add_constraint(&mut self, lhs: Ty, rhs: Ty) {
+        info!("Adding constraint: {} = {}.", lhs.wrap(&()), rhs.wrap(&()));
+
         self.constraints.push_front(Constraint::new(lhs, rhs));
     }
 
     /// Apply a substitution to all the remaining constraints.
     fn update_constraints(&mut self, subst: &Substitution) {
+        info!("Applying substitution {}.", subst.wrap(&()));
+
         for Constraint { lhs, rhs } in &mut self.constraints {
             subst.apply_to(lhs);
             subst.apply_to(rhs);
@@ -112,8 +118,11 @@ impl<'tcx> Checker<'tcx> {
         // FIXME: check if it is better to pop from the other end.
         // Keep unifying while there are constraints to unify.
         if let Some(Constraint { lhs, rhs }) = self.constraints.pop_back() {
+            trace!("Solving constraint: {} = {}", lhs.wrap(&()), rhs.wrap(&()));
+
             // Skip the constraint if both sides of the constraint are equal.
             if lhs == rhs {
+                info!("Both sides are equal.");
                 return self.unify(builder);
             }
 
@@ -121,6 +130,8 @@ impl<'tcx> Checker<'tcx> {
                 // If the left-hand side type is a free variable in the right-hand side, we can
                 // replace the left-hand side by the right-hand side.
                 (Ty::Hole(id), rhs) if !rhs.contains_hole(id) => {
+                    info!("LHS is a free variable in RHS.");
+
                     let subs = Substitution::new(id, rhs);
                     // Replace lhs by rhs in all the constraints.
                     self.update_constraints(&subs);
@@ -132,6 +143,8 @@ impl<'tcx> Checker<'tcx> {
                 // If the right-hand side type is a free variable in the left-hand side, we can
                 // replace the right-hand side by the left-hand side.
                 (lhs, Ty::Hole(id)) if !lhs.contains_hole(id) => {
+                    info!("RHS is a free variable in LHS.");
+
                     let subs = Substitution::new(id, lhs);
                     // Replace rhs by lhs in all the constraints.
                     self.update_constraints(&subs);
@@ -151,6 +164,8 @@ impl<'tcx> Checker<'tcx> {
                         return_ty: return_ty2,
                     },
                 ) => {
+                    info!("Both sides are functions.");
+
                     // Error if the arities of the functions do not match.
                     if params_ty1.len() != params_ty2.len() {
                         return Err(TyError::ArityMismatch {
@@ -172,6 +187,8 @@ impl<'tcx> Checker<'tcx> {
                 }
                 // If both sides are tuples. Unify each type inside them recursively.
                 (Ty::Tuple { fields: fields_ty1 }, Ty::Tuple { fields: fields_ty2 }) => {
+                    info!("Both sides are tuples.");
+
                     // Error if the lengths of the tuples do not match.
                     if fields_ty1.len() != fields_ty2.len() {
                         // FIXME: Technically this is not an arity mismatch
