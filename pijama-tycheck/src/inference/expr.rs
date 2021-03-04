@@ -33,7 +33,7 @@ impl InferTy for Expr {
                     .collect::<TyResult<Vec<Ty>>>()?;
 
                 // Create a new hole for the return type.
-                let return_ty = checker.tcx.new_hole();
+                let return_ty = checker.tcx.new_ty();
 
                 // This is the type the function would have if the arguments were well-typed.
                 let rhs_ty = Ty::Func {
@@ -77,7 +77,7 @@ impl InferTy for Expr {
                     // Logic operators receive booleans and return booleans.
                     BinOp::And | BinOp::Or => (Ty::Base(BaseTy::Bool), Ty::Base(BaseTy::Bool)),
                     // Equality operators receive any type and return booleans.
-                    BinOp::Eq | BinOp::Neq => (checker.tcx.new_hole(), Ty::Base(BaseTy::Bool)),
+                    BinOp::Eq | BinOp::Neq => (checker.tcx.new_ty(), Ty::Base(BaseTy::Bool)),
                     // Comparison operators receive integers and return booleans.
                     BinOp::Lt | BinOp::Gt | BinOp::Lte | BinOp::Gte => {
                         (Ty::Base(BaseTy::Int), Ty::Base(BaseTy::Bool))

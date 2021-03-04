@@ -1,4 +1,4 @@
-use pijama_ty::inference::{HoleId, Ty};
+use pijama_ty::inference::{Ty, TyVar};
 
 use pijama_utils::show::Show;
 
@@ -8,14 +8,14 @@ use pijama_utils::show::Show;
 #[derive(Debug)]
 pub(crate) struct Substitution {
     /// The inference variable to be replaced.
-    pub(crate) input: HoleId,
+    pub(crate) input: TyVar,
     /// The replacement.
     pub(crate) output: Ty,
 }
 
 impl Substitution {
     /// Create a new substitution.
-    pub(crate) fn new(input: HoleId, output: Ty) -> Self {
+    pub(crate) fn new(input: TyVar, output: Ty) -> Self {
         Self { input, output }
     }
 
@@ -23,7 +23,7 @@ impl Substitution {
     pub(crate) fn apply_to(&self, ty: &mut Ty) {
         match ty {
             // Change the type to the `output` field if the type matches the `input` field.
-            Ty::Hole(id) if *id == self.input => *ty = self.output.clone(),
+            Ty::Var(var) if *var == self.input => *ty = self.output.clone(),
             // if the type is a function, apply this substitution recursively on the parameters and
             // return types.
             Ty::Func {
@@ -42,7 +42,7 @@ impl Substitution {
                 }
             }
             // Otherwise, left the type as it is.
-            Ty::Hole(_) | Ty::Base(_) => (),
+            Ty::Var(_) | Ty::Base(_) => (),
         }
     }
 }

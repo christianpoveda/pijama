@@ -129,10 +129,10 @@ impl<'tcx> Checker<'tcx> {
             match (lhs, rhs) {
                 // If the left-hand side type is a free variable in the right-hand side, we can
                 // replace the left-hand side by the right-hand side.
-                (Ty::Hole(id), rhs) if !rhs.contains_hole(id) => {
+                (Ty::Var(var), rhs) if !rhs.contains_ty(var) => {
                     info!("LHS is a free variable in RHS.");
 
-                    let subs = Substitution::new(id, rhs);
+                    let subs = Substitution::new(var, rhs);
                     // Replace lhs by rhs in all the constraints.
                     self.update_constraints(&subs);
                     // Keep unifying.
@@ -142,10 +142,10 @@ impl<'tcx> Checker<'tcx> {
                 }
                 // If the right-hand side type is a free variable in the left-hand side, we can
                 // replace the right-hand side by the left-hand side.
-                (lhs, Ty::Hole(id)) if !lhs.contains_hole(id) => {
+                (lhs, Ty::Var(var)) if !lhs.contains_ty(var) => {
                     info!("RHS is a free variable in LHS.");
 
-                    let subs = Substitution::new(id, lhs);
+                    let subs = Substitution::new(var, lhs);
                     // Replace rhs by lhs in all the constraints.
                     self.update_constraints(&subs);
                     // Keep unifying.

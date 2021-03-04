@@ -53,7 +53,7 @@ impl<'source, 'tcx> Lower<'source, 'tcx> for Option<ast::Ty<'source>> {
         if let Some(ty) = self {
             lcx.lower(ty)
         } else {
-            Ok(lcx.tcx.new_hole())
+            Ok(lcx.tcx.new_ty())
         }
     }
 }

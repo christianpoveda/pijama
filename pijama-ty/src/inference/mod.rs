@@ -3,4 +3,4 @@ mod context;
 mod ty;
 
 pub use context::TyContext;
-pub use ty::{HoleId, Ty};
+pub use ty::{Ty, TyVar};

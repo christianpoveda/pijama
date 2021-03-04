@@ -6,14 +6,14 @@ use crate::{
 };
 
 use pijama_ty::{
-    inference::{self, HoleId},
+    inference::{self, TyVar},
     ty,
 };
 
 /// A type to replace all inference variables by concrete types, if possible.
 #[derive(Debug)]
 pub struct Unifier {
-    substitutions: BTreeMap<HoleId, ty::Ty>,
+    substitutions: BTreeMap<TyVar, ty::Ty>,
 }
 
 impl Unifier {
@@ -28,9 +28,9 @@ impl Unifier {
     pub fn instantiate(&self, ty: inference::Ty) -> ty::Ty {
         match ty {
             // Change the type to the `output` if the type matches the `input`.
-            inference::Ty::Hole(hole_id) => self
+            inference::Ty::Var(var) => self
                 .substitutions
-                .get(&hole_id)
+                .get(&var)
                 .expect("Every type variable should have a substitution")
                 .clone(),
             // if the type is a function, apply the substitutions recursively on the parameters and
@@ -57,7 +57,7 @@ impl Unifier {
 
 /// An unifier builder.
 pub(crate) struct UnifierBuilder {
-    substitutions: BTreeMap<HoleId, inference::Ty>,
+    substitutions: BTreeMap<TyVar, inference::Ty>,
 }
 
 impl UnifierBuilder {
@@ -71,9 +71,9 @@ impl UnifierBuilder {
     /// Apply in-place all the substitutions to a type.
     fn apply_substitutions(&self, ty: &mut inference::Ty) {
         match ty {
-            inference::Ty::Hole(hole_id) => {
+            inference::Ty::Var(var) => {
                 // Change the type to the `output` if the type matches the `input`.
-                if let Some(output) = self.substitutions.get(hole_id) {
+                if let Some(output) = self.substitutions.get(var) {
                     *ty = output.clone();
                 }
             }
@@ -127,7 +127,7 @@ impl UnifierBuilder {
 fn try_concrete(ty: inference::Ty) -> TyResult<ty::Ty> {
     match ty {
         inference::Ty::Base(base) => Ok(ty::Ty::Base(base)),
-        inference::Ty::Hole(hole_id) => Err(TyError::HoleFound(hole_id)),
+        inference::Ty::Var(var) => Err(TyError::FoundVar(var)),
         inference::Ty::Func {
             params_ty,
             return_ty,
