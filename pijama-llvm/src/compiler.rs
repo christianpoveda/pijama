@@ -160,9 +160,6 @@ impl<'ctx> Compiler<'ctx> {
         match ty {
             Ty::Base(base_ty) => {
                 let basic_type = match base_ty {
-                    // FIXME: Try to use void and figure out how to eliminate all the `unit`
-                    // values.
-                    BaseTy::Unit => self.ctx.i8_type(),
                     BaseTy::Bool => self.ctx.bool_type(),
                     BaseTy::Integer => self.ctx.i64_type(),
                 };

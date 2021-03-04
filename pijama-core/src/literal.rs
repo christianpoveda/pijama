@@ -38,12 +38,3 @@ impl From<bool> for Literal {
         }
     }
 }
-
-impl From<()> for Literal {
-    fn from((): ()) -> Self {
-        Self {
-            bits: 0,
-            ty: BaseTy::Unit,
-        }
-    }
-}

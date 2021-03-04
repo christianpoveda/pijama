@@ -193,12 +193,6 @@ Literal: ast::Literal = {
             span: boolean.1
         }
     },
-    <unit:Spanned<"unit">> => {
-        ast::Literal {
-            kind: ast::LiteralKind::Unit,
-            span: unit.1
-        }
-    },
 }
 
 Ident: ast::Ident<'source> = {
@@ -233,7 +227,6 @@ extern {
         "ident" => Token::Ident(<&'source str>),
         "true" => Token::True,
         "false" => Token::False,
-        "unit" => Token::Unit,
         "let" => Token::Let,
         ";" => Token::Semicolon,
         "fn" => Token::Fn,

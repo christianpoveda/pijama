@@ -17,7 +17,6 @@ impl<'source, 'tcx> Lower<'source, 'tcx> for ast::Ty<'source> {
         match self.kind {
             ast::TyKind::Base(ident) => match ident.symbol {
                 // Check that base types have the right symbol.
-                "Unit" => Ok(Ty::Base(BaseTy::Unit)),
                 "Bool" => Ok(Ty::Base(BaseTy::Bool)),
                 "Int" => Ok(Ty::Base(BaseTy::Integer)),
                 // Return an error if the symbol is not right.

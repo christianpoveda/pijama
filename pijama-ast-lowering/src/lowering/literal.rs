@@ -12,7 +12,6 @@ impl<'source, 'tcx> Lower<'source, 'tcx> for ast::Literal {
     ) -> LowerResult<'source, Self::Output> {
         // Lowering a literal is straightforward.
         Ok(match self.kind {
-            ast::LiteralKind::Unit => ().into(),
             ast::LiteralKind::Bool(boolean) => boolean.into(),
             ast::LiteralKind::Integer(integer) => integer.into(),
         })

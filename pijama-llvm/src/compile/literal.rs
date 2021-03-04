@@ -13,7 +13,6 @@ impl<'ctx> Compile<'ctx> for Literal {
         let basic_type = match self.base_ty() {
             // FIXME: Include this inside `Compiler` so we don't break the typing of literals by
             // accident.
-            BaseTy::Unit => compiler.ctx().i8_type(),
             BaseTy::Bool => compiler.ctx().bool_type(),
             BaseTy::Integer => compiler.ctx().i64_type(),
         };

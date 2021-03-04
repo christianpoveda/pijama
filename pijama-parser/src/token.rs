@@ -17,9 +17,6 @@ pub enum Token<'source> {
     /// The `false` token.
     #[token("false")]
     False,
-    /// The `unit` token.
-    #[token("unit")]
-    Unit,
     /// The `let` token.
     #[token("let")]
     Let,
