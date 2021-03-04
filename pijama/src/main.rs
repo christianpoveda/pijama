@@ -9,7 +9,10 @@ fn main() {
     let path = args.next().unwrap();
 
     // Create configuration.
-    let config = Config::new(path);
+    let config = Config {
+        path: path.into(),
+        codegen: true,
+    };
 
     // Run the compiler.
     Compiler::new().run(config);

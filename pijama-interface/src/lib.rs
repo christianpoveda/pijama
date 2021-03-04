@@ -11,16 +11,9 @@ use std::{
 /// The compiler's configuration.
 pub struct Config {
     /// The path of the file being compiled.
-    path: PathBuf,
-}
-
-impl Config {
-    /// Create a new configuration structure.
-    pub fn new(path: String) -> Self {
-        Self {
-            path: PathBuf::from(path),
-        }
-    }
+    pub path: PathBuf,
+    /// Generate a binary file.
+    pub codegen: bool,
 }
 
 /// The compiler.
@@ -54,14 +47,15 @@ impl Compiler {
         // Lower the HIR.
         let (core, table) = pijama_hir_lowering::lower_hir(unifier, table, hir).unwrap();
 
-        let obj_path = config.path.with_extension("o");
+        if config.codegen {
+            let obj_path = config.path.with_extension("o");
 
-        // Write the LLVM object file.
-        pijama_llvm::compile(core, table, &obj_path).unwrap();
+            // Write the LLVM object file.
+            pijama_llvm::compile(core, table, &obj_path).unwrap();
 
-        let exec_path = config.path.with_extension("out");
+            let exec_path = config.path.with_extension("out");
 
-        let c_src = r#"
+            let c_src = r#"
             #include <stdio.h>
 
             extern int entry();
@@ -70,27 +64,27 @@ impl Compiler {
                 int result = entry();
                 printf("%d\n", result);
                 return 0;
-            }
-        "#;
+            }"#;
 
-        let mut clang = Command::new("clang")
-            .args(&[
-                obj_path.as_os_str(),
-                OsStr::new("-o"),
-                exec_path.as_os_str(),
-                OsStr::new("-x"),
-                OsStr::new("c"),
-                OsStr::new("-"),
-            ])
-            .stdin(Stdio::piped())
-            .spawn()
-            .expect("Failed to spawn child process");
+            let mut clang = Command::new("clang")
+                .args(&[
+                    obj_path.as_os_str(),
+                    OsStr::new("-o"),
+                    exec_path.as_os_str(),
+                    OsStr::new("-x"),
+                    OsStr::new("c"),
+                    OsStr::new("-"),
+                ])
+                .stdin(Stdio::piped())
+                .spawn()
+                .expect("Failed to spawn child process");
 
-        let stdin = clang.stdin.as_mut().expect("Failed to open stdin");
-        stdin
-            .write_all(c_src.as_bytes())
-            .expect("Failed to write to stdin");
+            let stdin = clang.stdin.as_mut().expect("Failed to open stdin");
+            stdin
+                .write_all(c_src.as_bytes())
+                .expect("Failed to write to stdin");
 
-        clang.wait_with_output().expect("Failed to run clang");
+            clang.wait_with_output().expect("Failed to run clang");
+        }
     }
 }
