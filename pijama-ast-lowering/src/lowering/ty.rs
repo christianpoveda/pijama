@@ -18,7 +18,7 @@ impl<'source, 'tcx> Lower<'source, 'tcx> for ast::Ty<'source> {
             ast::TyKind::Base(ident) => match ident.symbol {
                 // Check that base types have the right symbol.
                 "Bool" => Ok(Ty::Base(BaseTy::Bool)),
-                "Int" => Ok(Ty::Base(BaseTy::Integer)),
+                "Int" => Ok(Ty::Base(BaseTy::Int)),
                 // Return an error if the symbol is not right.
                 symbol => Err(LowerErrorKind::UnboundIdent(symbol).into_err(ident.span)),
             },

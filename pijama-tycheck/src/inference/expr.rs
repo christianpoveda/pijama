@@ -51,7 +51,7 @@ impl InferTy for Expr {
                 // Define the type the operands must have and the type that the operator returns.
                 let (expected_ty, infered_ty) = match un_op {
                     // Arithmetic operators receive integers and return integers.
-                    UnOp::Neg => (Ty::Base(BaseTy::Integer), Ty::Base(BaseTy::Integer)),
+                    UnOp::Neg => (Ty::Base(BaseTy::Int), Ty::Base(BaseTy::Int)),
                     // Logic operators receive booleans and return booleans.
                     UnOp::Not => (Ty::Base(BaseTy::Bool), Ty::Base(BaseTy::Bool)),
                 };
@@ -72,7 +72,7 @@ impl InferTy for Expr {
                 let (expected_ty, infered_ty) = match bin_op {
                     // Arithmetic operators receive integers and return integers.
                     BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div | BinOp::Rem => {
-                        (Ty::Base(BaseTy::Integer), Ty::Base(BaseTy::Integer))
+                        (Ty::Base(BaseTy::Int), Ty::Base(BaseTy::Int))
                     }
                     // Logic operators receive booleans and return booleans.
                     BinOp::And | BinOp::Or => (Ty::Base(BaseTy::Bool), Ty::Base(BaseTy::Bool)),
@@ -80,7 +80,7 @@ impl InferTy for Expr {
                     BinOp::Eq | BinOp::Neq => (checker.tcx.new_hole(), Ty::Base(BaseTy::Bool)),
                     // Comparison operators receive integers and return booleans.
                     BinOp::Lt | BinOp::Gt | BinOp::Lte | BinOp::Gte => {
-                        (Ty::Base(BaseTy::Integer), Ty::Base(BaseTy::Bool))
+                        (Ty::Base(BaseTy::Int), Ty::Base(BaseTy::Bool))
                     }
                 };
 

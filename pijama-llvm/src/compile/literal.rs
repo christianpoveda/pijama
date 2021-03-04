@@ -14,7 +14,7 @@ impl<'ctx> Compile<'ctx> for Literal {
             // FIXME: Include this inside `Compiler` so we don't break the typing of literals by
             // accident.
             BaseTy::Bool => compiler.ctx().bool_type(),
-            BaseTy::Integer => compiler.ctx().i64_type(),
+            BaseTy::Int => compiler.ctx().i64_type(),
         };
         // Take the bits of the constant, this assumes LLVM has the same data layout as rust.
         basic_type.const_int(self.bits() as u64, false).into()

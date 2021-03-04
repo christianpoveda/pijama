@@ -1,11 +1,17 @@
 use crate::base::BaseTy;
 
-use pijama_utils::new_index;
+use pijama_utils::{new_index, show::Show};
 
 new_index! {
     #[doc = "An unique ID used to represent inference variables."]
     #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
     HoleId
+}
+
+impl<Ctx> Show<Ctx> for HoleId {
+    fn show(&self, _ctx: &Ctx, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "?T{}", self.0)
+    }
 }
 
 /// A type with holes.
@@ -44,6 +50,29 @@ impl Ty {
                     || return_ty.contains_hole(hole_id)
             }
             Ty::Tuple { fields } => fields.iter().any(|ty| ty.contains_hole(hole_id)),
+        }
+    }
+}
+
+impl<Ctx> Show<Ctx> for Ty {
+    fn show(&self, ctx: &Ctx, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Base(base_ty) => base_ty.show(ctx, f),
+            Self::Hole(id) => id.show(ctx, f),
+            Self::Func {
+                params_ty,
+                return_ty,
+            } => {
+                write!(
+                    f,
+                    "fn({}) -> {}",
+                    Show::<Ctx>::show_sep(params_ty, ", ").wrap(ctx),
+                    return_ty.wrap(ctx)
+                )
+            }
+            Self::Tuple { fields } => {
+                write!(f, "({})", Show::<Ctx>::show_sep(fields, ", ").wrap(ctx))
+            }
         }
     }
 }

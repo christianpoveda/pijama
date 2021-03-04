@@ -161,7 +161,7 @@ impl<'ctx> Compiler<'ctx> {
             Ty::Base(base_ty) => {
                 let basic_type = match base_ty {
                     BaseTy::Bool => self.ctx.bool_type(),
-                    BaseTy::Integer => self.ctx.i64_type(),
+                    BaseTy::Int => self.ctx.i64_type(),
                 };
                 basic_type.into()
             }

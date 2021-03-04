@@ -25,7 +25,7 @@ impl From<i64> for Literal {
     fn from(int: i64) -> Self {
         Self {
             bits: int,
-            ty: BaseTy::Integer,
+            ty: BaseTy::Int,
         }
     }
 }

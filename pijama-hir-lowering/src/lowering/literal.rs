@@ -11,7 +11,7 @@ impl Lower for hir::Literal {
         // FIXME: maybe these two types should be the same.
         let literal = match self.base_ty() {
             BaseTy::Bool => (self.bits() != 0).into(),
-            BaseTy::Integer => self.bits().into(),
+            BaseTy::Int => self.bits().into(),
         };
 
         Ok(literal)
