@@ -1,6 +1,6 @@
 use crate::{compile::Compile, compiler::FuncCompiler};
 
-use pijama_core::{BinOp, Expr, ExprKind};
+use pijama_core::{BinOp, Expr, ExprKind, UnOp};
 
 use inkwell::{values::BasicValueEnum, IntPredicate};
 
@@ -44,34 +44,53 @@ impl<'ctx> Compile<'ctx> for Expr {
             } => {
                 // Compile the operands into a basic value and collect them. All of these should be
                 // integers.
+                // FIXME: guarantee that both operands are actually integers.
                 let left_op = compiler.compile(left_op).into_int_value();
                 let right_op = compiler.compile(right_op).into_int_value();
 
-                // FIXME: Figure out how to abstract this. Maybe use a macro?.
+                let builder = compiler.builder();
+
                 // FIXME: Take an stance about overflows.
-                match bin_op {
-                    BinOp::Add => compiler
-                        .builder()
-                        .build_int_add(left_op, right_op, "")
-                        .into(),
-                    BinOp::Sub => compiler
-                        .builder()
-                        .build_int_sub(left_op, right_op, "")
-                        .into(),
-                    BinOp::Mul => compiler
-                        .builder()
-                        .build_int_mul(left_op, right_op, "")
-                        .into(),
-                    BinOp::Gt => compiler
-                        .builder()
-                        .build_int_compare(IntPredicate::SGT, left_op, right_op, "")
-                        .into(),
-                    // FIXME: Do the other operations.
-                    _ => todo!(),
-                }
+                let value = match bin_op {
+                    BinOp::Add => builder.build_int_add(left_op, right_op, ""),
+                    BinOp::Sub => builder.build_int_sub(left_op, right_op, ""),
+                    BinOp::Mul => builder.build_int_mul(left_op, right_op, ""),
+                    BinOp::Div => builder.build_int_signed_div(left_op, right_op, ""),
+                    BinOp::Rem => builder.build_int_signed_rem(left_op, right_op, ""),
+                    BinOp::And => builder.build_and(left_op, right_op, ""),
+                    BinOp::Or => builder.build_or(left_op, right_op, ""),
+                    BinOp::Eq => builder.build_int_compare(IntPredicate::EQ, left_op, right_op, ""),
+                    BinOp::Neq => {
+                        builder.build_int_compare(IntPredicate::NE, left_op, right_op, "")
+                    }
+                    BinOp::Lt => {
+                        builder.build_int_compare(IntPredicate::SLT, left_op, right_op, "")
+                    }
+                    BinOp::Lte => {
+                        builder.build_int_compare(IntPredicate::SLE, left_op, right_op, "")
+                    }
+                    BinOp::Gt => {
+                        builder.build_int_compare(IntPredicate::SGT, left_op, right_op, "")
+                    }
+                    BinOp::Gte => {
+                        builder.build_int_compare(IntPredicate::SGE, left_op, right_op, "")
+                    }
+                };
+
+                value.into()
             }
-            // FIXME: Do the other operations.
-            ExprKind::UnaryOp { .. } => todo!(),
+            ExprKind::UnaryOp { un_op, op } => {
+                let op = compiler.compile(op).into_int_value();
+
+                let builder = compiler.builder();
+
+                let value = match un_op {
+                    UnOp::Not => builder.build_not(op, ""),
+                    UnOp::Neg => builder.build_int_neg(op, ""),
+                };
+
+                value.into()
+            }
             ExprKind::Cond {
                 cond,
                 do_branch,
