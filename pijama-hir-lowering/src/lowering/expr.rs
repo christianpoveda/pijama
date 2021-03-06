@@ -13,8 +13,8 @@ impl Lower for hir::Expr {
             hir::ExprKind::Atom(atom) => core::ExprKind::Atom(lcx.lower(atom)?),
             hir::ExprKind::Let { lhs, rhs, body } => core::ExprKind::Let {
                 lhs: lcx.lower(lhs)?,
-                rhs: Box::new(lcx.lower(*rhs)?),
-                body: Box::new(lcx.lower(*body)?),
+                rhs: lcx.lower(rhs)?,
+                body: lcx.lower(body)?,
             },
             hir::ExprKind::Call { func, args } => {
                 // FIXME: allow arbitrary funcs
@@ -71,17 +71,11 @@ impl Lower for hir::Expr {
                 cond,
                 do_branch,
                 else_branch,
-            } => {
-                let cond = lower_into_atom(*cond, lcx, &mut binds)?;
-                let do_branch = lcx.lower(*do_branch)?;
-                let else_branch = lcx.lower(*else_branch)?;
-
-                core::ExprKind::Cond {
-                    cond,
-                    do_branch: Box::new(do_branch),
-                    else_branch: Box::new(else_branch),
-                }
-            }
+            } => core::ExprKind::Cond {
+                cond: lower_into_atom(*cond, lcx, &mut binds)?,
+                do_branch: lcx.lower(do_branch)?,
+                else_branch: lcx.lower(else_branch)?,
+            },
             hir::ExprKind::Tuple { fields } => {
                 let fields = fields
                     .into_iter()
