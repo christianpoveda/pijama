@@ -26,13 +26,13 @@ FuncDef: ast::FuncDef<'source> = {
 }
 
 Expr: ast::Expr<'source> = {
-    BinaryOp1,
     <spanned:Spanned<ExprKind>> => {
         ast::Expr { kind: spanned.0, span: spanned.1 }
     },
 }
 
 ExprKind: ast::ExprKind<'source> = {
+    BinaryOp1,
     "let" <lhs:Param> "=" <rhs:Expr> ";" <body:Expr> => {
         ast::ExprKind::Let {
             lhs: lhs.0,
@@ -56,19 +56,17 @@ BinaryOp3 = Tier<BinOpKind3, BinaryOp4>;
 BinaryOp4 = Tier<BinOpKind4, BinaryOp5>;
 BinaryOp5 = Tier<BinOpKind5, UnaryOp>;
 
-Tier<OpKind, NextTier>: ast::Expr<'source> = {
-    <op1:Tier<OpKind, NextTier>> <bin_op:Spanned<OpKind>> <op2:NextTier> => {
+Tier<OpKind, NextTier>: ast::ExprKind<'source> = {
+    <op1:Spanned<Tier<OpKind, NextTier>>> <bin_op:Spanned<OpKind>> <op2:Spanned<NextTier>> => {
         let bin_op = ast::BinOp { kind: bin_op.0, span: bin_op.1 };
-        let span = Span::new(op1.span.start, op2.span.end);
+        let op1 = ast::Expr { kind: op1.0, span: op1.1 };
+        let op2 = ast::Expr { kind: op2.0, span: op2.1 };
 
-        ast::Expr {
-            kind: ast::ExprKind::BinaryOp(
-                bin_op,
-                Box::new(op1),
-                Box::new(op2)
-            ),
-            span,
-        }
+        ast::ExprKind::BinaryOp(
+            bin_op,
+            Box::new(op1),
+            Box::new(op2)
+        )
     },
     NextTier
 }
@@ -101,16 +99,9 @@ BinOpKind5: ast::BinOpKind = {
     "%" => ast::BinOpKind::Rem,
 }
 
-
-UnaryOp: ast::Expr<'source> = {
-    <un_op:UnOp> <op:BaseExpr> => {
-        let span = Span::new(un_op.span.start, op.span.end);
-        ast::Expr {
-            kind: ast::ExprKind::UnaryOp(un_op, Box::new(op)),
-            span,
-        }
-    },
-    <BaseExpr>,
+UnaryOp: ast::ExprKind<'source> = {
+    <un_op:UnOp> <op:BaseExpr> => ast::ExprKind::UnaryOp(un_op, Box::new(op)),
+    <BaseExprKind>,
 }
 
 UnOp: ast::UnOp = {
