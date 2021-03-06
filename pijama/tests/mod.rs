@@ -14,3 +14,4 @@ macro_rules! check {
 
 check!(fibonacci);
 check!(apply);
+check!(arithmetic);

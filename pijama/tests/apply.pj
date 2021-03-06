@@ -1,0 +1,11 @@
+fn succ(x) do
+    x + 1
+end
+
+fn apply(f, x) do
+    f(x)
+end
+
+fn main() do
+    apply(succ, 0)
+end
