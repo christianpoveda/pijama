@@ -1,6 +1,6 @@
 use crate::{compile::Compile, compiler::FuncCompiler};
 
-use pijama_core::Literal;
+use pijama_mir::Literal;
 use pijama_ty::base::BaseTy;
 
 use inkwell::values::BasicValueEnum;

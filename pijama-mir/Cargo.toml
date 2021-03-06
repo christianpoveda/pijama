@@ -1,5 +1,5 @@
 [package]
-name = "pijama-core"
+name = "pijama-mir"
 version = "0.1.0"
 authors = ["Christian Poveda <git@christianpoveda.xyz>"]
 edition = "2018"

@@ -7,7 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-pijama-core = { path = "../pijama-core" }
+pijama-mir = { path = "../pijama-mir" }
 pijama-ty = { path = "../pijama-ty" }
 pijama-tycheck = { path = "../pijama-tycheck" }
 pijama-utils = { path = "../pijama-utils" }

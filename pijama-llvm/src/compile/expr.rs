@@ -1,6 +1,6 @@
 use crate::{compile::Compile, compiler::FuncCompiler};
 
-use pijama_core::{BinOp, Expr, ExprKind, UnOp};
+use pijama_mir::{BinOp, Expr, ExprKind, UnOp};
 
 use inkwell::{values::BasicValueEnum, IntPredicate};
 

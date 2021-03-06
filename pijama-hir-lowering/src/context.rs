@@ -1,6 +1,6 @@
 use crate::{error::LowerResult, lowering::Lower};
 
-use pijama_core as core;
+use pijama_mir as mir;
 use pijama_ty::{ty::Ty, ExprId};
 use pijama_tycheck::{Table, Unifier};
 use pijama_utils::index::IndexMap;
@@ -10,7 +10,7 @@ pub(crate) struct LowerContext {
     /// The unifier used to instantiate types.
     pub(crate) unifier: Unifier,
     pub(crate) table: Table,
-    local_types: IndexMap<core::Local, Ty>,
+    local_types: IndexMap<mir::Local, Ty>,
 }
 
 impl LowerContext {
@@ -32,11 +32,11 @@ impl LowerContext {
         self.table.get_ty(id)
     }
 
-    pub(crate) fn store_local_ty(&mut self, ty: Ty) -> core::Local {
+    pub(crate) fn store_local_ty(&mut self, ty: Ty) -> mir::Local {
         self.local_types.insert(ty)
     }
 
-    pub(crate) fn get_local_types(&mut self) -> IndexMap<core::Local, Ty> {
+    pub(crate) fn get_local_types(&mut self) -> IndexMap<mir::Local, Ty> {
         std::mem::replace(&mut self.local_types, IndexMap::new())
     }
 }

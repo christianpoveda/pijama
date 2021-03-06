@@ -1,10 +1,10 @@
 use crate::{context::LowerContext, error::LowerResult, lowering::Lower};
 
-use pijama_core as core;
 use pijama_hir as hir;
+use pijama_mir as mir;
 
 impl Lower for hir::Func {
-    type Output = core::Func;
+    type Output = mir::Func;
 
     fn lower_with(self, lcx: &mut LowerContext) -> LowerResult<Self::Output> {
         for (_, ty) in self.locals {
@@ -19,7 +19,7 @@ impl Lower for hir::Func {
         // Lower the body of the function.
         let body = lcx.lower(self.body)?;
 
-        Ok(core::Func {
+        Ok(mir::Func {
             arity: self.arity,
             locals: lcx.get_local_types(),
             return_ty,

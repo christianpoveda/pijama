@@ -9,9 +9,9 @@ mod ty;
 
 use crate::{context::LowerContext, error::LowerResult};
 
-/// A trait that every HIR term that can be lowered into a core term must implement.
+/// A trait that every HIR term that can be lowered into a mir term must implement.
 pub(crate) trait Lower {
-    /// The type of the lowered core term.
+    /// The type of the lowered mir term.
     type Output;
     /// Consume the current term and return a lowered one.
     fn lower_with(self, lcx: &mut LowerContext) -> LowerResult<Self::Output>;

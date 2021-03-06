@@ -3,7 +3,7 @@ mod compiler;
 
 use compiler::Compiler;
 
-use pijama_core::Program;
+use pijama_mir::Program;
 use pijama_tycheck::Table;
 
 use inkwell::{context::Context, support::LLVMString};

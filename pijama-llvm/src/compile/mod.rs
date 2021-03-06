@@ -5,7 +5,7 @@ mod name;
 
 use crate::compiler::FuncCompiler;
 
-/// A trait that every core term that can be compiled into the LLVM-IR must implement.
+/// A trait that every mir term that can be compiled into the LLVM-IR must implement.
 pub(crate) trait Compile<'ctx> {
     /// The type returned after compilation.
     type Output;

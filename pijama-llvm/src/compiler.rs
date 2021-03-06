@@ -1,6 +1,6 @@
 use crate::compile::Compile;
 
-use pijama_core::{Expr, FuncId, Local, Program};
+use pijama_mir::{Expr, FuncId, Local, Program};
 use pijama_ty::{base::BaseTy, ty::Ty, ExprId};
 use pijama_tycheck::Table;
 use pijama_utils::index::IndexMap;
@@ -21,7 +21,7 @@ use std::path::Path;
 
 /// A compiler for functions.
 ///
-/// This is the main structure for lowering core expressions to LLVM-IR.
+/// This is the main structure for lowering mir expressions to LLVM-IR.
 pub(crate) struct FuncCompiler<'ctx, 'func> {
     /// The global compiler.
     compiler: &'func Compiler<'ctx>,
@@ -44,7 +44,7 @@ impl<'ctx, 'func> FuncCompiler<'ctx, 'func> {
         // function as values in it.
         //
         // This works because the parameters are always the first locals and they have the same
-        // order in the funciton's value as in the core representation.
+        // order in the funciton's value as in the mir representation.
         let locals = IndexMap::from_raw(func.get_params());
 
         // Add an entry block for the function.
@@ -81,7 +81,7 @@ impl<'ctx, 'func> FuncCompiler<'ctx, 'func> {
     /// Bind a basic value to a local.
     ///
     /// This function panics if the basics values are bound in a different order as the one the
-    /// locals had inside the function's core representation.
+    /// locals had inside the function's mir representation.
     pub(crate) fn insert_local(&mut self, local: Local, value: BasicValueEnum<'ctx>) {
         let new_local = self.locals.insert(value);
         assert_eq!(local, new_local, "Locals are in the wrong order.");
@@ -125,7 +125,7 @@ impl<'ctx, 'func> FuncCompiler<'ctx, 'func> {
 
 /// A compiler for programs.
 ///
-/// This struct holds most of the LLVM structures required to compile a program from core to
+/// This struct holds most of the LLVM structures required to compile a program from mir to
 /// LLVM-IR.
 pub(crate) struct Compiler<'ctx> {
     /// LLVM's context.
@@ -190,7 +190,7 @@ impl<'ctx> Compiler<'ctx> {
         }
     }
 
-    /// Compile a core program and write it as an object file.
+    /// Compile a mir program and write it as an object file.
     pub(crate) fn compile(mut self, program: Program, path: &Path) -> Result<(), LLVMString> {
         // Create an LLVM value for each function in the program.
         for (func_id, func) in &program.functions {

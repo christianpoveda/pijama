@@ -8,7 +8,7 @@ members = [
     "pijama-hir-lowering",
     "pijama-interface",
     "pijama-llvm",
-    "pijama-core",
+    "pijama-mir",
     "pijama-parser",
     "pijama-std",
     "pijama-ty",

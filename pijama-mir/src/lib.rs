@@ -1,4 +1,4 @@
-/// Core is Pijama's last IR before compiling to LLVM.
+/// MIR is Pijama's last IR before compiling to LLVM.
 mod atom;
 mod expr;
 mod func;
