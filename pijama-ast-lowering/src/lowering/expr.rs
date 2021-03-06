@@ -23,7 +23,7 @@ impl<'source, 'tcx> Lower<'source, 'tcx> for ast::Expr<'source> {
             } => {
                 // First, lower the right-hand side of the binding (the left-hand side should not
                 // be in scope yet!)
-                let rhs = lcx.lower(*rhs)?;
+                let rhs = lcx.lower(rhs)?;
 
                 // Now lower the left-hand side type in order to insert it into the `locals` field
                 // and get a `Local` for the left-hand side.
@@ -33,27 +33,20 @@ impl<'source, 'tcx> Lower<'source, 'tcx> for ast::Expr<'source> {
                 // Push the left-hand side local onto the scope.
                 lcx.scope.push_ident(lhs, hir::Name::Local(lhs_local));
                 // Lower the body of the binding with the left-hand side in scope.
-                let body = lcx.lower(*body)?;
+                let body = lcx.lower(body)?;
                 // Remove the left-hand side from the scope.
                 lcx.scope.pop_ident();
 
                 hir::ExprKind::Let {
                     lhs: lhs_local,
-                    rhs: Box::new(rhs),
-                    body: Box::new(body),
+                    rhs,
+                    body,
                 }
             }
-            ast::ExprKind::Call { func, args } => {
-                // Lower the identifier of the called function.
-                let func = lcx.lower(func)?;
-                // Lower each expression sequentially.
-                let args = args
-                    .into_iter()
-                    .map(|arg| lcx.lower(arg))
-                    .collect::<LowerResult<Vec<hir::Expr>>>()?;
-
-                hir::ExprKind::Call { func, args }
-            }
+            ast::ExprKind::Call { func, args } => hir::ExprKind::Call {
+                func: lcx.lower(func)?,
+                args: lcx.lower(args)?,
+            },
             ast::ExprKind::UnaryOp(un_op, op) => {
                 let un_op = match un_op.kind {
                     ast::UnOpKind::Not => hir::UnOp::Not,
@@ -62,7 +55,7 @@ impl<'source, 'tcx> Lower<'source, 'tcx> for ast::Expr<'source> {
 
                 hir::ExprKind::UnaryOp {
                     un_op,
-                    op: Box::new(lcx.lower(*op)?),
+                    op: lcx.lower(op)?,
                 }
             }
             ast::ExprKind::BinaryOp(bin_op, left_op, right_op) => {
@@ -84,8 +77,8 @@ impl<'source, 'tcx> Lower<'source, 'tcx> for ast::Expr<'source> {
 
                 hir::ExprKind::BinaryOp {
                     bin_op,
-                    left_op: Box::new(lcx.lower(*left_op)?),
-                    right_op: Box::new(lcx.lower(*right_op)?),
+                    left_op: lcx.lower(left_op)?,
+                    right_op: lcx.lower(right_op)?,
                 }
             }
             // Lowering a conditional is straightforward.
@@ -94,15 +87,12 @@ impl<'source, 'tcx> Lower<'source, 'tcx> for ast::Expr<'source> {
                 do_branch,
                 else_branch,
             } => hir::ExprKind::Cond {
-                cond: Box::new(lcx.lower(*cond)?),
-                do_branch: Box::new(lcx.lower(*do_branch)?),
-                else_branch: Box::new(lcx.lower(*else_branch)?),
+                cond: lcx.lower(cond)?,
+                do_branch: lcx.lower(do_branch)?,
+                else_branch: lcx.lower(else_branch)?,
             },
             ast::ExprKind::Tuple { fields } => hir::ExprKind::Tuple {
-                fields: fields
-                    .into_iter()
-                    .map(|field| lcx.lower(field))
-                    .collect::<LowerResult<Vec<_>>>()?,
+                fields: lcx.lower(fields)?,
             },
         };
 

@@ -27,17 +27,11 @@ impl<'source, 'tcx> Lower<'source, 'tcx> for ast::Ty<'source> {
                 params_ty,
                 return_ty,
             } => Ok(Ty::Func {
-                params_ty: params_ty
-                    .into_iter()
-                    .map(|ty| lcx.lower(ty))
-                    .collect::<LowerResult<Vec<Ty>>>()?,
-                return_ty: Box::new(lcx.lower(*return_ty)?),
+                params_ty: lcx.lower(params_ty)?,
+                return_ty: lcx.lower(return_ty)?,
             }),
             ast::TyKind::Tuple { fields } => Ok(Ty::Tuple {
-                fields: fields
-                    .into_iter()
-                    .map(|ty| lcx.lower(ty))
-                    .collect::<LowerResult<Vec<Ty>>>()?,
+                fields: lcx.lower(fields)?,
             }),
         }
     }
